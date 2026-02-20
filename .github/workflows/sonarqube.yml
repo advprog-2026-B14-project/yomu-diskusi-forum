@@ -5,6 +5,7 @@ on:
     branches:
       - main
       - staging
+      - ci-cd
   pull_request:
     branches:
       - main
