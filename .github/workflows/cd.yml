@@ -27,7 +27,7 @@ jobs:
         run: mvn clean package -DskipTests
 
       - name: Copy JAR and Dockerfile to EC2
-        uses: appleboy/scp-action@master
+        uses: appleboy/scp-action@ff85246acaad7bdce478db94a363cd2bf7c90345
         with:
           host: 18.207.58.155
           username: ubuntu
@@ -37,7 +37,7 @@ jobs:
           strip_components: 0
 
       - name: Build and Run Docker on EC2
-        uses: appleboy/ssh-action@master
+        uses: appleboy/ssh-action@2ead5e36573f08b82fbfce1504f1a4b05a647c6f
         with:
           host: 18.207.58.155
           username: ubuntu
