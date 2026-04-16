@@ -13,7 +13,7 @@ public class Reaction {
     @Id
     private UUID id;
 
-    @Column(name = "comment_id", nullable = false) 
+    @Column(name = "comment_id", nullable = false)
     private UUID commentId;
 
     @Column(name = "user_id", nullable = false)

@@ -1,6 +1,7 @@
 package id.ac.ui.cs.advprog.yomuforum.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import id.ac.ui.cs.advprog.yomuforum.dto.CommentRequest;
 import id.ac.ui.cs.advprog.yomuforum.model.Comment;
 import id.ac.ui.cs.advprog.yomuforum.service.CommentService;
 import org.junit.jupiter.api.BeforeEach;
@@ -56,11 +57,36 @@ class CommentControllerTest {
 
     @Test
     void testCreateComment() throws Exception {
+        CommentRequest request = new CommentRequest();
+        request.setContent("Test comment");
+        request.setUserId(userId.toString());
+        request.setReadingId(readingId.toString());
+        request.setParentCommentId(UUID.randomUUID().toString());
+
         when(commentService.createComment(any(Comment.class))).thenReturn(comment);
 
         mockMvc.perform(post("/api/comments")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(comment)))
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.id").value(commentId.toString()))
+                .andExpect(jsonPath("$.content").value("Test comment"));
+
+        verify(commentService, times(1)).createComment(any(Comment.class));
+    }
+
+    @Test
+    void testCreateCommentWithoutParentCommentId() throws Exception {
+        CommentRequest request = new CommentRequest();
+        request.setContent("Test comment");
+        request.setUserId(userId.toString());
+        request.setReadingId(readingId.toString());
+
+        when(commentService.createComment(any(Comment.class))).thenReturn(comment);
+
+        mockMvc.perform(post("/api/comments")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.id").value(commentId.toString()))
                 .andExpect(jsonPath("$.content").value("Test comment"));
@@ -70,6 +96,11 @@ class CommentControllerTest {
 
     @Test
     void testUpdateComment() throws Exception {
+        CommentRequest request = new CommentRequest();
+        request.setContent("Updated comment");
+        request.setUserId(userId.toString());
+        request.setReadingId(readingId.toString());
+
         Comment updatedComment = new Comment();
         updatedComment.setId(commentId);
         updatedComment.setContent("Updated comment");
@@ -82,7 +113,7 @@ class CommentControllerTest {
 
         mockMvc.perform(put("/api/comments/{id}", commentId)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(updatedComment)))
+                        .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content").value("Updated comment"));
 

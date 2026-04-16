@@ -1,6 +1,7 @@
 package id.ac.ui.cs.advprog.yomuforum.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import id.ac.ui.cs.advprog.yomuforum.dto.ReactionRequest;
 import id.ac.ui.cs.advprog.yomuforum.model.Reaction;
 import id.ac.ui.cs.advprog.yomuforum.service.ReactionService;
 import org.junit.jupiter.api.BeforeEach;
@@ -13,7 +14,6 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.Arrays;
 import java.util.Date;
-import java.util.List;
 import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.any;
@@ -54,11 +54,16 @@ class ReactionControllerTest {
 
     @Test
     void testAddReaction() throws Exception {
+        ReactionRequest request = new ReactionRequest();
+        request.setCommentId(commentId.toString());
+        request.setUserId(userId.toString());
+        request.setReactionType("LIKE");
+
         when(reactionService.addReaction(any(Reaction.class))).thenReturn(reaction);
 
         mockMvc.perform(post("/api/reactions")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(reaction)))
+                .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.id").value(reactionId.toString()))
                 .andExpect(jsonPath("$.reactionType").value("LIKE"));

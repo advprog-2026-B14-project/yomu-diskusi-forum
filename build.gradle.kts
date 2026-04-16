@@ -12,6 +12,8 @@ val seleniumJavaVersion = "4.14.1"
 val seleniumJupiterVersion = "5.0.1"
 val webdrivermanagerVersion = "5.6.3"
 val junitJupiterVersion = "5.9.1"
+val jakartaValidationVersion = "3.0.2"
+val hibernateValidatorVersion = "8.0.1.Final"
 
 java {
     toolchain {
@@ -35,11 +37,10 @@ dependencies {
     implementation("org.postgresql:postgresql")
     implementation("org.springframework.boot:spring-boot-starter-data-jpa")
 
-    implementation ("jakarta.validation:jakarta.validation-api:3.0.2")
-    implementation ("org.hibernate.validator:hibernate-validator:8.0.1.Final")
+    implementation("jakarta.validation:jakarta.validation-api:$jakartaValidationVersion")
+    implementation("org.hibernate.validator:hibernate-validator:$hibernateValidatorVersion")
 
     implementation("org.springframework.boot:spring-boot-starter-thymeleaf")
-    implementation("org.springframework.boot:spring-boot-starter-web")
     compileOnly("org.projectlombok:lombok")
     developmentOnly("org.springframework.boot:spring-boot-devtools")
     annotationProcessor("org.springframework.boot:spring-boot-configuration-processor")

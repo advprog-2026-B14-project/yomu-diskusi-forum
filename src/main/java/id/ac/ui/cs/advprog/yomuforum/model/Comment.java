@@ -1,7 +1,6 @@
 package id.ac.ui.cs.advprog.yomuforum.model;
 
 import jakarta.persistence.*;
-// import jakarta.validation.constraints.NotBlank;
 import lombok.Getter;
 import lombok.Setter;
 import java.util.UUID;
@@ -23,7 +22,6 @@ public class Comment {
     @Column(name = "parent_comment_id")
     private UUID parentCommentId;
 
-    // @NotBlank(message = "Content cannot be empty") 
     @Column(nullable = false, columnDefinition = "TEXT")
     private String content;
 

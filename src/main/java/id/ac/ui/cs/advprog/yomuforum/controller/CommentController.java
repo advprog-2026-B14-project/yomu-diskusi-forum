@@ -1,5 +1,6 @@
 package id.ac.ui.cs.advprog.yomuforum.controller;
 
+import id.ac.ui.cs.advprog.yomuforum.dto.CommentRequest;
 import id.ac.ui.cs.advprog.yomuforum.model.Comment;
 import id.ac.ui.cs.advprog.yomuforum.service.CommentService;
 import lombok.RequiredArgsConstructor;
@@ -17,13 +18,22 @@ public class CommentController {
     private final CommentService commentService;
 
     @PostMapping
-    public ResponseEntity<Comment> createComment(@RequestBody Comment comment) {
+    public ResponseEntity<Comment> createComment(@RequestBody CommentRequest request) {
+        Comment comment = new Comment();
+        comment.setContent(request.getContent());
+        comment.setUserId(UUID.fromString(request.getUserId()));
+        comment.setReadingId(UUID.fromString(request.getReadingId()));
+        comment.setParentCommentId(parseUuid(request.getParentCommentId()));
+
         Comment createdComment = commentService.createComment(comment);
         return new ResponseEntity<>(createdComment, HttpStatus.CREATED);
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Comment> updateComment(@PathVariable("id") UUID id, @RequestBody Comment comment) {
+    public ResponseEntity<Comment> updateComment(@PathVariable("id") UUID id, @RequestBody CommentRequest request) {
+        Comment comment = new Comment();
+        comment.setContent(request.getContent());
+
         Comment updatedComment = commentService.updateComment(id, comment);
         return ResponseEntity.ok(updatedComment);
     }
@@ -62,5 +72,9 @@ public class CommentController {
     public ResponseEntity<List<Comment>> getCommentsByUserId(@PathVariable("userId") UUID userId) {
         List<Comment> comments = commentService.getCommentsByUserId(userId);
         return ResponseEntity.ok(comments);
+    }
+
+    private UUID parseUuid(String value) {
+        return value == null ? null : UUID.fromString(value);
     }
 }
