@@ -17,9 +17,7 @@ public class ReactionServiceImpl implements ReactionService {
     @Override
     public Reaction addReaction(Reaction reaction) {
         reactionRepository.findByCommentIdAndUserId(reaction.getCommentId(), reaction.getUserId())
-                .ifPresent(existingReaction -> {
-                    reactionRepository.delete(existingReaction);
-                });
+                .ifPresent(reactionRepository::delete);
         
         reaction.setId(UUID.randomUUID());
         reaction.setCreatedAt(new Date());
