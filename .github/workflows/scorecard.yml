@@ -1,20 +1,19 @@
 name: Scorecard supply-chain security
 on:
   schedule:
-    - cron: '19 12 * * 4'
+    - cron: "19 12 * * 4"
   push:
-
-    branches: [ "main", "staging", "ci-cd" ]
+    branches: ["main", "staging", "ci-cd"]
   pull_request:
-    branches: [ "main", "staging" ]
+    branches: ["main", "staging"]
 
-permissions: read-all
+permissions:
+  contents: read
 
 jobs:
   analysis:
     name: Scorecard analysis
     runs-on: ubuntu-latest
-
 
     if: github.event_name == 'push' || github.event_name == 'pull_request'
 
@@ -35,10 +34,6 @@ jobs:
         with:
           results_file: results.sarif
           results_format: sarif
-
-
-
-
 
           publish_results: ${{ github.ref_name == github.event.repository.default_branch }}
 
