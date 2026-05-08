@@ -19,8 +19,9 @@ public class Reaction {
     @Column(name = "user_id", nullable = false)
     private UUID userId;
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "reaction_type", nullable = false)
-    private String reactionType;
+    private ReactionType reactionType;
 
     @Column(name = "created_at", updatable = false)
     private Date createdAt = new Date();

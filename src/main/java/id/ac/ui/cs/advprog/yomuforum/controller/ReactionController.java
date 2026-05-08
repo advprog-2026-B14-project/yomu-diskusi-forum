@@ -2,6 +2,7 @@ package id.ac.ui.cs.advprog.yomuforum.controller;
 
 import id.ac.ui.cs.advprog.yomuforum.dto.ReactionRequest;
 import id.ac.ui.cs.advprog.yomuforum.model.Reaction;
+import id.ac.ui.cs.advprog.yomuforum.model.ReactionType;
 import id.ac.ui.cs.advprog.yomuforum.service.ReactionService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -22,7 +23,7 @@ public class ReactionController {
         Reaction reaction = new Reaction();
         reaction.setCommentId(UUID.fromString(request.getCommentId()));
         reaction.setUserId(UUID.fromString(request.getUserId()));
-        reaction.setReactionType(request.getReactionType());
+        reaction.setReactionType(ReactionType.from(request.getReactionType()));
 
         Reaction addedReaction = reactionService.addReaction(reaction);
         return new ResponseEntity<>(addedReaction, HttpStatus.CREATED);
@@ -44,7 +45,7 @@ public class ReactionController {
     public ResponseEntity<Long> countReactionsByType(
             @PathVariable("commentId") UUID commentId,
             @RequestParam("type") String type) {
-        long count = reactionService.countReactionsByType(commentId, type);
+        long count = reactionService.countReactionsByType(commentId, ReactionType.from(type).name());
         return ResponseEntity.ok(count);
     }
 

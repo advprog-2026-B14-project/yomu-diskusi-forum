@@ -1,6 +1,7 @@
 package id.ac.ui.cs.advprog.yomuforum.repository;
 
 import id.ac.ui.cs.advprog.yomuforum.model.Reaction;
+import id.ac.ui.cs.advprog.yomuforum.model.ReactionType;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
@@ -12,5 +13,5 @@ import java.util.UUID;
 public interface ReactionRepository extends JpaRepository<Reaction, UUID> {
     List<Reaction> findByCommentId(UUID commentId);
     Optional<Reaction> findByCommentIdAndUserId(UUID commentId, UUID userId);
-    long countByCommentIdAndReactionType(UUID commentId, String reactionType);
+    long countByCommentIdAndReactionType(UUID commentId, ReactionType reactionType);
 }

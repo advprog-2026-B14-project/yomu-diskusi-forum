@@ -40,7 +40,7 @@ class ReactionTest {
 
     @Test
     void testSetAndGetReactionType() {
-        String type = "LIKE";
+        ReactionType type = ReactionType.UPVOTE;
         reaction.setReactionType(type);
         assertEquals(type, reaction.getReactionType());
     }

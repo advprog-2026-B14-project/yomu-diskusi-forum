@@ -1,6 +1,9 @@
 package id.ac.ui.cs.advprog.yomuforum.service;
 
 import id.ac.ui.cs.advprog.yomuforum.model.Comment;
+import id.ac.ui.cs.advprog.yomuforum.exception.CommentNotFoundException;
+import id.ac.ui.cs.advprog.yomuforum.exception.ForbiddenException;
+import id.ac.ui.cs.advprog.yomuforum.exception.InvalidInputException;
 import id.ac.ui.cs.advprog.yomuforum.repository.CommentRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -29,6 +32,7 @@ class CommentServiceImplTest {
 
     private Comment comment;
     private UUID commentId;
+    private UUID actorUserId;
 
     @BeforeEach
     void setUp() {
@@ -38,6 +42,7 @@ class CommentServiceImplTest {
         comment.setUserId(UUID.randomUUID());
         comment.setReadingId(UUID.randomUUID());
         comment.setContent("Test comment content");
+        actorUserId = comment.getUserId();
     }
 
     @Test
@@ -64,6 +69,50 @@ class CommentServiceImplTest {
     }
 
     @Test
+    void testCreateCommentEmptyContent() {
+        comment.setContent(" ");
+
+        InvalidInputException exception = assertThrows(InvalidInputException.class,
+                () -> commentService.createComment(comment));
+
+        assertEquals("Content cannot be empty", exception.getMessage());
+        verify(commentRepository, never()).save(any(Comment.class));
+    }
+
+    @Test
+    void testCreateCommentNullContent() {
+        comment.setContent(null);
+
+        InvalidInputException exception = assertThrows(InvalidInputException.class,
+                () -> commentService.createComment(comment));
+
+        assertEquals("Content cannot be empty", exception.getMessage());
+        verify(commentRepository, never()).save(any(Comment.class));
+    }
+
+    @Test
+    void testCreateCommentMissingUserId() {
+        comment.setUserId(null);
+
+        InvalidInputException exception = assertThrows(InvalidInputException.class,
+                () -> commentService.createComment(comment));
+
+        assertEquals("userId and readingId are required", exception.getMessage());
+        verify(commentRepository, never()).save(any(Comment.class));
+    }
+
+    @Test
+    void testCreateCommentMissingReadingId() {
+        comment.setReadingId(null);
+
+        InvalidInputException exception = assertThrows(InvalidInputException.class,
+                () -> commentService.createComment(comment));
+
+        assertEquals("userId and readingId are required", exception.getMessage());
+        verify(commentRepository, never()).save(any(Comment.class));
+    }
+
+    @Test
     void testUpdateCommentSuccess() {
         Comment updatedComment = new Comment();
         updatedComment.setContent("Updated content");
@@ -71,7 +120,7 @@ class CommentServiceImplTest {
         when(commentRepository.findById(commentId)).thenReturn(Optional.of(comment));
         when(commentRepository.save(any(Comment.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        Comment result = commentService.updateComment(commentId, updatedComment);
+        Comment result = commentService.updateComment(commentId, updatedComment, actorUserId, false);
 
         assertEquals("Updated content", result.getContent());
         assertNotNull(result.getUpdatedAt());
@@ -86,18 +135,134 @@ class CommentServiceImplTest {
         Comment updatedComment = new Comment();
         updatedComment.setContent("Updated content");
 
-        RuntimeException exception = assertThrows(RuntimeException.class,
-                () -> commentService.updateComment(commentId, updatedComment));
+        CommentNotFoundException exception = assertThrows(CommentNotFoundException.class,
+            () -> commentService.updateComment(commentId, updatedComment, actorUserId, false));
 
         assertEquals("Comment not found", exception.getMessage());
         verify(commentRepository, never()).save(any(Comment.class));
     }
 
     @Test
+    void testUpdateCommentEmptyContent() {
+        Comment updatedComment = new Comment();
+        updatedComment.setContent(" ");
+
+        when(commentRepository.findById(commentId)).thenReturn(Optional.of(comment));
+
+        InvalidInputException exception = assertThrows(InvalidInputException.class,
+                () -> commentService.updateComment(commentId, updatedComment, actorUserId, false));
+
+        assertEquals("Content cannot be empty", exception.getMessage());
+        verify(commentRepository, never()).save(any(Comment.class));
+    }
+
+    @Test
+    void testUpdateCommentNullContent() {
+        Comment updatedComment = new Comment();
+        updatedComment.setContent(null);
+
+        when(commentRepository.findById(commentId)).thenReturn(Optional.of(comment));
+
+        InvalidInputException exception = assertThrows(InvalidInputException.class,
+                () -> commentService.updateComment(commentId, updatedComment, actorUserId, false));
+
+        assertEquals("Content cannot be empty", exception.getMessage());
+        verify(commentRepository, never()).save(any(Comment.class));
+    }
+
+    @Test
+    void testUpdateCommentMissingActorUserId() {
+        Comment updatedComment = new Comment();
+        updatedComment.setContent("Updated content");
+
+        when(commentRepository.findById(commentId)).thenReturn(Optional.of(comment));
+
+        InvalidInputException exception = assertThrows(InvalidInputException.class,
+                () -> commentService.updateComment(commentId, updatedComment, null, false));
+
+        assertEquals("userId is required", exception.getMessage());
+        verify(commentRepository, never()).save(any(Comment.class));
+    }
+
+    @Test
+    void testUpdateCommentForbidden() {
+        Comment updatedComment = new Comment();
+        updatedComment.setContent("Updated content");
+
+        when(commentRepository.findById(commentId)).thenReturn(Optional.of(comment));
+
+        ForbiddenException exception = assertThrows(ForbiddenException.class,
+                () -> commentService.updateComment(commentId, updatedComment, UUID.randomUUID(), false));
+
+        assertEquals("You can only edit your own comments", exception.getMessage());
+        verify(commentRepository, never()).save(any(Comment.class));
+    }
+
+    @Test
+    void testUpdateCommentAsAdmin() {
+        Comment updatedComment = new Comment();
+        updatedComment.setContent("Updated by admin");
+
+        when(commentRepository.findById(commentId)).thenReturn(Optional.of(comment));
+        when(commentRepository.save(any(Comment.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        Comment result = commentService.updateComment(commentId, updatedComment, UUID.randomUUID(), true);
+
+        assertEquals("Updated by admin", result.getContent());
+        verify(commentRepository, times(1)).save(any(Comment.class));
+    }
+
+    @Test
     void testDeleteComment() {
         doNothing().when(commentRepository).deleteById(commentId);
+        when(commentRepository.findById(commentId)).thenReturn(Optional.of(comment));
 
-        commentService.deleteComment(commentId);
+        commentService.deleteComment(commentId, actorUserId, false);
+
+        verify(commentRepository, times(1)).findById(commentId);
+        verify(commentRepository, times(1)).deleteById(commentId);
+    }
+
+    @Test
+    void testDeleteCommentForbidden() {
+        UUID otherUserId = UUID.randomUUID();
+        when(commentRepository.findById(commentId)).thenReturn(Optional.of(comment));
+
+        ForbiddenException exception = assertThrows(ForbiddenException.class,
+                () -> commentService.deleteComment(commentId, otherUserId, false));
+
+        assertEquals("You can only delete your own comments unless you are admin", exception.getMessage());
+        verify(commentRepository, never()).deleteById(commentId);
+    }
+
+    @Test
+    void testDeleteCommentNotFound() {
+        when(commentRepository.findById(commentId)).thenReturn(Optional.empty());
+
+        CommentNotFoundException exception = assertThrows(CommentNotFoundException.class,
+                () -> commentService.deleteComment(commentId, actorUserId, false));
+
+        assertEquals("Comment not found", exception.getMessage());
+        verify(commentRepository, never()).deleteById(commentId);
+    }
+
+    @Test
+    void testDeleteCommentMissingActorUserId() {
+        when(commentRepository.findById(commentId)).thenReturn(Optional.of(comment));
+
+        InvalidInputException exception = assertThrows(InvalidInputException.class,
+                () -> commentService.deleteComment(commentId, null, false));
+
+        assertEquals("userId is required", exception.getMessage());
+        verify(commentRepository, never()).deleteById(commentId);
+    }
+
+    @Test
+    void testDeleteCommentAsAdmin() {
+        when(commentRepository.findById(commentId)).thenReturn(Optional.of(comment));
+        doNothing().when(commentRepository).deleteById(commentId);
+
+        commentService.deleteComment(commentId, UUID.randomUUID(), true);
 
         verify(commentRepository, times(1)).deleteById(commentId);
     }
@@ -117,7 +282,7 @@ class CommentServiceImplTest {
     void testGetCommentByIdNotFound() {
         when(commentRepository.findById(commentId)).thenReturn(Optional.empty());
 
-        RuntimeException exception = assertThrows(RuntimeException.class,
+        CommentNotFoundException exception = assertThrows(CommentNotFoundException.class,
                 () -> commentService.getCommentById(commentId));
 
         assertEquals("Comment not found", exception.getMessage());

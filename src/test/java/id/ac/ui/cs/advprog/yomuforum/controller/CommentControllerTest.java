@@ -1,13 +1,22 @@
 package id.ac.ui.cs.advprog.yomuforum.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import id.ac.ui.cs.advprog.yomuforum.config.SecurityConfig;
 import id.ac.ui.cs.advprog.yomuforum.dto.CommentRequest;
+import id.ac.ui.cs.advprog.yomuforum.exception.CommentNotFoundException;
+import id.ac.ui.cs.advprog.yomuforum.exception.ForbiddenException;
 import id.ac.ui.cs.advprog.yomuforum.model.Comment;
 import id.ac.ui.cs.advprog.yomuforum.service.CommentService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Import;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.userdetails.User;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.provisioning.InMemoryUserDetailsManager;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
@@ -20,11 +29,41 @@ import java.util.UUID;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.httpBasic;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(CommentController.class)
+@Import({SecurityConfig.class, CommentControllerTest.TestSecurityUsers.class})
 class CommentControllerTest {
+
+    static final String VALID_USER_UUID = "11111111-1111-1111-1111-111111111111";
+    static final String ADMIN_USER_UUID = "22222222-2222-2222-2222-222222222222";
+    static final String INVALID_USER = "not-a-uuid";
+    static final String PASSWORD = "password";
+
+    @org.springframework.boot.test.context.TestConfiguration
+    static class TestSecurityUsers {
+        @Bean
+        public UserDetailsService userDetailsService() {
+            var normalUser = User.builder()
+                    .username(VALID_USER_UUID)
+                    .password("{noop}" + PASSWORD)
+                    .authorities(new SimpleGrantedAuthority("ROLE_USER"))
+                    .build();
+            var adminUser = User.builder()
+                    .username(ADMIN_USER_UUID)
+                    .password("{noop}" + PASSWORD)
+                    .authorities(new SimpleGrantedAuthority("ROLE_ADMIN"))
+                    .build();
+            var invalidUser = User.builder()
+                    .username(INVALID_USER)
+                    .password("{noop}" + PASSWORD)
+                    .authorities(new SimpleGrantedAuthority("ROLE_USER"))
+                    .build();
+            return new InMemoryUserDetailsManager(normalUser, adminUser, invalidUser);
+        }
+    }
 
     @Autowired
     private MockMvc mockMvc;
@@ -95,39 +134,206 @@ class CommentControllerTest {
     }
 
     @Test
+    void testCreateCommentWithInvalidParentCommentId() throws Exception {
+        CommentRequest request = new CommentRequest();
+        request.setContent("Test comment");
+        request.setUserId(userId.toString());
+        request.setReadingId(readingId.toString());
+        request.setParentCommentId("not-a-uuid");
+
+        mockMvc.perform(post("/api/comments")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest());
+
+        verify(commentService, never()).createComment(any(Comment.class));
+    }
+
+    @Test
+    void testCreateCommentWithBlankUserId() throws Exception {
+        CommentRequest request = new CommentRequest();
+        request.setContent("Test comment");
+        request.setUserId(" ");
+        request.setReadingId(readingId.toString());
+
+        mockMvc.perform(post("/api/comments")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest());
+
+        verify(commentService, never()).createComment(any(Comment.class));
+    }
+
+    @Test
+    void testCreateCommentWithMissingUserId() throws Exception {
+        CommentRequest request = new CommentRequest();
+        request.setContent("Test comment");
+        request.setReadingId(readingId.toString());
+
+        mockMvc.perform(post("/api/comments")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest());
+
+        verify(commentService, never()).createComment(any(Comment.class));
+    }
+
+    @Test
+    void testCreateCommentWithBlankParentCommentId() throws Exception {
+        CommentRequest request = new CommentRequest();
+        request.setContent("Test comment");
+        request.setUserId(userId.toString());
+        request.setReadingId(readingId.toString());
+        request.setParentCommentId(" ");
+
+        when(commentService.createComment(any(Comment.class))).thenReturn(comment);
+
+        mockMvc.perform(post("/api/comments")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isCreated());
+
+        verify(commentService, times(1)).createComment(any(Comment.class));
+    }
+
+    @Test
     void testUpdateComment() throws Exception {
         CommentRequest request = new CommentRequest();
         request.setContent("Updated comment");
-        request.setUserId(userId.toString());
-        request.setReadingId(readingId.toString());
+
+        UUID authenticatedUserId = UUID.fromString(VALID_USER_UUID);
 
         Comment updatedComment = new Comment();
         updatedComment.setId(commentId);
         updatedComment.setContent("Updated comment");
-        updatedComment.setUserId(userId);
+        updatedComment.setUserId(authenticatedUserId);
         updatedComment.setReadingId(readingId);
         updatedComment.setCreatedAt(new Date());
         updatedComment.setUpdatedAt(new Date());
 
-        when(commentService.updateComment(eq(commentId), any(Comment.class))).thenReturn(updatedComment);
+        when(commentService.updateComment(eq(commentId), any(Comment.class), eq(authenticatedUserId), eq(false)))
+                .thenReturn(updatedComment);
 
         mockMvc.perform(put("/api/comments/{id}", commentId)
+                        .with(httpBasic(VALID_USER_UUID, PASSWORD))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content").value("Updated comment"));
 
-        verify(commentService, times(1)).updateComment(eq(commentId), any(Comment.class));
+        verify(commentService, times(1)).updateComment(eq(commentId), any(Comment.class), eq(authenticatedUserId), eq(false));
+    }
+
+    @Test
+    void testUpdateCommentAsAdmin() throws Exception {
+        CommentRequest request = new CommentRequest();
+        request.setContent("Admin updated comment");
+
+        UUID adminUserId = UUID.fromString(ADMIN_USER_UUID);
+
+        Comment updatedComment = new Comment();
+        updatedComment.setId(commentId);
+        updatedComment.setContent("Admin updated comment");
+        updatedComment.setUserId(userId);
+        updatedComment.setReadingId(readingId);
+        updatedComment.setCreatedAt(new Date());
+        updatedComment.setUpdatedAt(new Date());
+
+        when(commentService.updateComment(eq(commentId), any(Comment.class), eq(adminUserId), eq(true)))
+                .thenReturn(updatedComment);
+
+        mockMvc.perform(put("/api/comments/{id}", commentId)
+                        .with(httpBasic(ADMIN_USER_UUID, PASSWORD))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content").value("Admin updated comment"));
+
+        verify(commentService, times(1)).updateComment(eq(commentId), any(Comment.class), eq(adminUserId), eq(true));
+    }
+
+    @Test
+    void testUpdateCommentUnauthenticated() throws Exception {
+        CommentRequest request = new CommentRequest();
+        request.setContent("Updated comment");
+
+        mockMvc.perform(put("/api/comments/{id}", commentId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isUnauthorized());
+
+        verify(commentService, never()).updateComment(any(), any(), any(), anyBoolean());
     }
 
     @Test
     void testDeleteComment() throws Exception {
-        doNothing().when(commentService).deleteComment(commentId);
+        UUID authenticatedUserId = UUID.fromString(VALID_USER_UUID);
+        doNothing().when(commentService).deleteComment(commentId, authenticatedUserId, false);
 
-        mockMvc.perform(delete("/api/comments/{id}", commentId))
+        mockMvc.perform(delete("/api/comments/{id}", commentId)
+                        .with(httpBasic(VALID_USER_UUID, PASSWORD)))
                 .andExpect(status().isNoContent());
 
-        verify(commentService, times(1)).deleteComment(commentId);
+        verify(commentService, times(1)).deleteComment(commentId, authenticatedUserId, false);
+    }
+
+    @Test
+    void testDeleteCommentAsAdmin() throws Exception {
+        UUID adminUserId = UUID.fromString(ADMIN_USER_UUID);
+        doNothing().when(commentService).deleteComment(commentId, adminUserId, true);
+
+        mockMvc.perform(delete("/api/comments/{id}", commentId)
+                        .with(httpBasic(ADMIN_USER_UUID, PASSWORD)))
+                .andExpect(status().isNoContent());
+
+        verify(commentService, times(1)).deleteComment(commentId, adminUserId, true);
+    }
+
+    @Test
+    void testDeleteCommentUnauthenticated() throws Exception {
+        mockMvc.perform(delete("/api/comments/{id}", commentId))
+                .andExpect(status().isUnauthorized());
+
+        verify(commentService, never()).deleteComment(any(), any(), anyBoolean());
+    }
+
+    @Test
+    void testDeleteCommentWithInvalidAuthenticatedUserId() throws Exception {
+        mockMvc.perform(delete("/api/comments/{id}", commentId)
+                        .with(httpBasic(INVALID_USER, PASSWORD)))
+                .andExpect(status().isBadRequest());
+
+        verify(commentService, never()).deleteComment(any(UUID.class), any(UUID.class), anyBoolean());
+    }
+
+    @Test
+    void testUpdateCommentForbidden() throws Exception {
+        CommentRequest request = new CommentRequest();
+        request.setContent("Updated comment");
+        UUID authenticatedUserId = UUID.fromString(VALID_USER_UUID);
+
+        when(commentService.updateComment(eq(commentId), any(Comment.class), eq(authenticatedUserId), eq(false)))
+            .thenThrow(new ForbiddenException("You can only edit your own comments"));
+
+        mockMvc.perform(put("/api/comments/{id}", commentId)
+                .with(httpBasic(VALID_USER_UUID, PASSWORD))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
+            .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void testUpdateCommentWithInvalidAuthenticatedUserId() throws Exception {
+        CommentRequest request = new CommentRequest();
+        request.setContent("Updated comment");
+
+        mockMvc.perform(put("/api/comments/{id}", commentId)
+                        .with(httpBasic(INVALID_USER, PASSWORD))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest());
+
+        verify(commentService, never()).updateComment(any(), any(), any(), anyBoolean());
     }
 
     @Test
@@ -138,6 +344,16 @@ class CommentControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(commentId.toString()))
                 .andExpect(jsonPath("$.content").value("Test comment"));
+
+        verify(commentService, times(1)).getCommentById(commentId);
+    }
+
+    @Test
+    void testGetCommentByIdNotFound() throws Exception {
+        when(commentService.getCommentById(commentId)).thenThrow(new CommentNotFoundException("Comment not found"));
+
+        mockMvc.perform(get("/api/comments/{id}", commentId))
+                .andExpect(status().isNotFound());
 
         verify(commentService, times(1)).getCommentById(commentId);
     }

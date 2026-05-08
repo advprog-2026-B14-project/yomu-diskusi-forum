@@ -9,6 +9,11 @@ import static org.mockito.Mockito.*;
 class YomuForumApplicationTests {
 
     @Test
+    void contextLoads() {
+        // ...
+    }
+
+    @Test
     void testMainClassExists() {
         assertDoesNotThrow(() -> {
             Class.forName("id.ac.ui.cs.advprog.yomuforum.YomuForumApplication");
