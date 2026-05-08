@@ -1,6 +1,7 @@
 package id.ac.ui.cs.advprog.yomuforum.service;
 
 import id.ac.ui.cs.advprog.yomuforum.model.Reaction;
+import id.ac.ui.cs.advprog.yomuforum.model.ReactionType;
 import id.ac.ui.cs.advprog.yomuforum.repository.ReactionRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -42,7 +43,7 @@ class ReactionServiceImplTest {
         reaction.setId(reactionId);
         reaction.setCommentId(commentId);
         reaction.setUserId(userId);
-        reaction.setReactionType("LIKE");
+        reaction.setReactionType(ReactionType.UPVOTE);
     }
 
     @Test
@@ -67,7 +68,7 @@ class ReactionServiceImplTest {
         existingReaction.setId(UUID.randomUUID());
         existingReaction.setCommentId(commentId);
         existingReaction.setUserId(userId);
-        existingReaction.setReactionType("DISLIKE");
+        existingReaction.setReactionType(ReactionType.DOWNVOTE);
 
         when(reactionRepository.findByCommentIdAndUserId(commentId, userId))
                 .thenReturn(Optional.of(existingReaction));
@@ -95,7 +96,7 @@ class ReactionServiceImplTest {
         reaction2.setId(UUID.randomUUID());
         reaction2.setCommentId(commentId);
         reaction2.setUserId(UUID.randomUUID());
-        reaction2.setReactionType("DISLIKE");
+        reaction2.setReactionType(ReactionType.DOWNVOTE);
 
         when(reactionRepository.findByCommentId(commentId))
                 .thenReturn(Arrays.asList(reaction, reaction2));
@@ -117,22 +118,22 @@ class ReactionServiceImplTest {
 
     @Test
     void testCountReactionsByType() {
-        when(reactionRepository.countByCommentIdAndReactionType(commentId, "LIKE"))
+        when(reactionRepository.countByCommentIdAndReactionType(commentId, ReactionType.UPVOTE))
                 .thenReturn(5L);
 
-        long count = reactionService.countReactionsByType(commentId, "LIKE");
+        long count = reactionService.countReactionsByType(commentId, "UPVOTE");
 
         assertEquals(5L, count);
         verify(reactionRepository, times(1))
-                .countByCommentIdAndReactionType(commentId, "LIKE");
+            .countByCommentIdAndReactionType(commentId, ReactionType.UPVOTE);
     }
 
     @Test
     void testCountReactionsByTypeZero() {
-        when(reactionRepository.countByCommentIdAndReactionType(commentId, "DISLIKE"))
+        when(reactionRepository.countByCommentIdAndReactionType(commentId, ReactionType.DOWNVOTE))
                 .thenReturn(0L);
 
-        long count = reactionService.countReactionsByType(commentId, "DISLIKE");
+        long count = reactionService.countReactionsByType(commentId, "DOWNVOTE");
 
         assertEquals(0L, count);
     }
@@ -146,7 +147,7 @@ class ReactionServiceImplTest {
 
         assertNotNull(result);
         assertEquals(reaction.getId(), result.getId());
-        assertEquals("LIKE", result.getReactionType());
+        assertEquals(ReactionType.UPVOTE, result.getReactionType());
         verify(reactionRepository, times(1)).findByCommentIdAndUserId(commentId, userId);
     }
 

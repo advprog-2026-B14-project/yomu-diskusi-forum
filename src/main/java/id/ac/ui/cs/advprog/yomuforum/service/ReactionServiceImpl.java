@@ -1,6 +1,7 @@
 package id.ac.ui.cs.advprog.yomuforum.service;
 
 import id.ac.ui.cs.advprog.yomuforum.model.Reaction;
+import id.ac.ui.cs.advprog.yomuforum.model.ReactionType;
 import id.ac.ui.cs.advprog.yomuforum.repository.ReactionRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -36,7 +37,7 @@ public class ReactionServiceImpl implements ReactionService {
 
     @Override
     public long countReactionsByType(UUID commentId, String reactionType) {
-        return reactionRepository.countByCommentIdAndReactionType(commentId, reactionType);
+        return reactionRepository.countByCommentIdAndReactionType(commentId, ReactionType.from(reactionType));
     }
 
     @Override

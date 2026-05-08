@@ -7,8 +7,8 @@ import java.util.UUID;
 
 public interface CommentService {
     Comment createComment(Comment comment);
-    Comment updateComment(UUID id, Comment comment);
-    void deleteComment(UUID id);
+    Comment updateComment(UUID id, Comment comment, UUID actorUserId, boolean isAdmin);
+    void deleteComment(UUID id, UUID actorUserId, boolean isAdmin);
     Comment getCommentById(UUID id);
     List<Comment> getAllComments();
     List<Comment> getCommentsByReadingId(UUID readingId);
