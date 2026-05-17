@@ -61,10 +61,9 @@ class NotificationCommentEventListenerTest {
     void testGetNotificationsReturnsUnmodifiableList() {
         listener.onEvent(new CommentEvent(
                 EventType.COMMENT_CREATED, UUID.randomUUID(), UUID.randomUUID(), "test"));
-
-        assertThrows(UnsupportedOperationException.class, () ->
-                listener.getNotifications().add(new CommentEvent(
-                        EventType.COMMENT_DELETED, UUID.randomUUID(), UUID.randomUUID(), "x")));
+        CommentEvent ev = new CommentEvent(
+                EventType.COMMENT_DELETED, UUID.randomUUID(), UUID.randomUUID(), "x");
+        assertThrows(UnsupportedOperationException.class, () -> listener.getNotifications().add(ev));
     }
 
     @Test

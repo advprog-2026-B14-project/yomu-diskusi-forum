@@ -20,14 +20,10 @@ import java.util.Map;
 public class ReactionStrategyContext {
 
     private final Map<ReactionType, ReactionStrategy> strategyMap = new EnumMap<>(ReactionType.class);
-    private final ReactionStrategy emojiStrategy;
 
     public ReactionStrategyContext(List<ReactionStrategy> strategies) {
-        ReactionStrategy fallbackEmoji = null;
-
         for (ReactionStrategy strategy : strategies) {
             if (strategy instanceof EmojiStrategy) {
-                fallbackEmoji = strategy;
                 // Register emoji strategy for all emoji types
                 for (ReactionType type : ReactionType.values()) {
                     if (EmojiStrategy.isEmojiType(type)) {
@@ -38,8 +34,6 @@ public class ReactionStrategyContext {
                 strategyMap.put(strategy.getReactionType(), strategy);
             }
         }
-
-        this.emojiStrategy = fallbackEmoji;
     }
 
     /**

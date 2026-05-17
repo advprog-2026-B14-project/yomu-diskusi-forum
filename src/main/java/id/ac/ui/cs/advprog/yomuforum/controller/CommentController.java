@@ -18,6 +18,7 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class CommentController {
     private final CommentService commentService;
+    private static final String USER_ID = "userId";
 
     @PostMapping
     public ResponseEntity<Comment> createComment(
@@ -26,7 +27,7 @@ public class CommentController {
         Comment comment = new Comment();
         comment.setContent(request.getContent());
         String resolvedUserId = resolveUserId(userIdHeader, request.getUserId());
-        comment.setUserId(parseRequiredUuid(resolvedUserId, "userId"));
+        comment.setUserId(parseRequiredUuid(resolvedUserId, USER_ID));
         comment.setReadingId(parseRequiredUuid(request.getReadingId(), "readingId"));
         comment.setParentCommentId(parseUuid(request.getParentCommentId()));
 
@@ -45,7 +46,7 @@ public class CommentController {
         String resolvedUserId = resolveUserId(userIdHeader, requestBody.getUserId());
 
         Comment updatedComment = commentService.updateComment(
-                id, comment, parseRequiredUuid(resolvedUserId, "userId"), isAdmin(userRole));
+            id, comment, parseRequiredUuid(resolvedUserId, USER_ID), isAdmin(userRole));
         return ResponseEntity.ok(updatedComment);
     }
 
@@ -54,10 +55,10 @@ public class CommentController {
             @PathVariable("id") UUID id,
             @RequestHeader(value = "X-User-Id", required = false) String userIdHeader,
             @RequestHeader(value = "X-User-Role", required = false) String userRole,
-            @RequestParam(value = "userId", required = false) String userIdParam) {
+            @RequestParam(value = USER_ID, required = false) String userIdParam) {
         String resolvedUserId = resolveUserId(userIdHeader, userIdParam);
         commentService.deleteComment(
-                id, parseRequiredUuid(resolvedUserId, "userId"), isAdmin(userRole));
+                id, parseRequiredUuid(resolvedUserId, USER_ID), isAdmin(userRole));
         return ResponseEntity.noContent().build();
     }
 
