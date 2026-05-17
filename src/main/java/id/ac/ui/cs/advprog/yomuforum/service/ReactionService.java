@@ -7,7 +7,7 @@ import java.util.UUID;
 
 public interface ReactionService {
     Reaction addReaction(Reaction reaction);
-    void removeReaction(UUID id);
+    void removeReaction(UUID id, UUID actorUserId, boolean isAdmin);
     List<Reaction> getReactionsByCommentId(UUID commentId);
     long countReactionsByType(UUID commentId, String reactionType);
     Reaction getUserReaction(UUID commentId, UUID userId);

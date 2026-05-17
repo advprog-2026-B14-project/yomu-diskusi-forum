@@ -10,12 +10,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.context.TestConfiguration;
-import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
-import org.springframework.security.core.userdetails.User;
-import org.springframework.security.core.userdetails.UserDetailsService;
-import org.springframework.security.provisioning.InMemoryUserDetailsManager;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
@@ -25,30 +20,17 @@ import java.util.Date;
 import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.httpBasic;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(ReactionController.class)
-@Import({SecurityConfig.class, ReactionControllerTest.TestSecurityUsers.class})
+@Import(SecurityConfig.class)
 class ReactionControllerTest {
 
-    static final String TEST_USER = "test-user";
-    static final String PASSWORD = "password";
-
-    @TestConfiguration
-    static class TestSecurityUsers {
-        @Bean
-        public UserDetailsService userDetailsService() {
-            var user = User.builder()
-                    .username(TEST_USER)
-                    .password("{noop}" + PASSWORD)
-                    .roles("USER")
-                    .build();
-            return new InMemoryUserDetailsManager(user);
-        }
-    }
+    static final String TEST_USER = "00000000-0000-0000-0000-000000000001";
+    static final String INVALID_USER = "not-a-uuid";
 
     @Autowired
     private MockMvc mockMvc;
@@ -82,13 +64,12 @@ class ReactionControllerTest {
     void testAddReaction() throws Exception {
         ReactionRequest request = new ReactionRequest();
         request.setCommentId(commentId.toString());
-        request.setUserId(userId.toString());
         request.setReactionType("UPVOTE");
 
         when(reactionService.addReaction(any(Reaction.class))).thenReturn(reaction);
 
         mockMvc.perform(post("/api/reactions")
-                        .with(httpBasic(TEST_USER, PASSWORD))
+                        .header("X-User-Id", TEST_USER)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isCreated())
@@ -99,14 +80,54 @@ class ReactionControllerTest {
     }
 
     @Test
+    void testAddReactionWithInvalidUserId() throws Exception {
+        ReactionRequest request = new ReactionRequest();
+        request.setCommentId(commentId.toString());
+        request.setReactionType("UPVOTE");
+
+        mockMvc.perform(post("/api/reactions")
+                        .header("X-User-Id", INVALID_USER)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("Invalid UUID format: not-a-uuid"));
+
+        verify(reactionService, never()).addReaction(any(Reaction.class));
+    }
+
+    @Test
+    void testAddReactionWithoutUserId() throws Exception {
+        ReactionRequest request = new ReactionRequest();
+        request.setCommentId(commentId.toString());
+        request.setReactionType("UPVOTE");
+
+        mockMvc.perform(post("/api/reactions")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest());
+
+        verify(reactionService, never()).addReaction(any(Reaction.class));
+    }
+
+    @Test
     void testRemoveReaction() throws Exception {
-        doNothing().when(reactionService).removeReaction(reactionId);
+        doNothing().when(reactionService).removeReaction(eq(reactionId), any(UUID.class), eq(false));
 
         mockMvc.perform(delete("/api/reactions/{id}", reactionId)
-                        .with(httpBasic(TEST_USER, PASSWORD)))
-                .andExpect(status().isNoContent());
+                .header("X-User-Id", TEST_USER))
+            .andExpect(status().isNoContent());
 
-        verify(reactionService, times(1)).removeReaction(reactionId);
+        verify(reactionService, times(1)).removeReaction(eq(reactionId), any(UUID.class), eq(false));
+    }
+
+    @Test
+    void testRemoveReactionWithInvalidUserId() throws Exception {
+        mockMvc.perform(delete("/api/reactions/{id}", reactionId)
+                        .header("X-User-Id", INVALID_USER))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("Invalid UUID format: not-a-uuid"));
+
+        verify(reactionService, never()).removeReaction(any(UUID.class), any(UUID.class), anyBoolean());
     }
 
     @Test
@@ -121,8 +142,7 @@ class ReactionControllerTest {
         when(reactionService.getReactionsByCommentId(commentId))
                 .thenReturn(Arrays.asList(reaction, reaction2));
 
-        mockMvc.perform(get("/api/reactions/comment/{commentId}", commentId)
-                        .with(httpBasic(TEST_USER, PASSWORD)))
+        mockMvc.perform(get("/api/reactions/comment/{commentId}", commentId))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(2));
 
@@ -134,8 +154,7 @@ class ReactionControllerTest {
         when(reactionService.countReactionsByType(commentId, "UPVOTE")).thenReturn(3L);
 
         mockMvc.perform(get("/api/reactions/comment/{commentId}/count", commentId)
-                        .param("type", "UPVOTE")
-                        .with(httpBasic(TEST_USER, PASSWORD)))
+                        .param("type", "UPVOTE"))
                 .andExpect(status().isOk())
                 .andExpect(content().string("3"));
 
@@ -146,8 +165,7 @@ class ReactionControllerTest {
     void testGetUserReactionFound() throws Exception {
         when(reactionService.getUserReaction(commentId, userId)).thenReturn(reaction);
 
-        mockMvc.perform(get("/api/reactions/comment/{commentId}/user/{userId}", commentId, userId)
-                        .with(httpBasic(TEST_USER, PASSWORD)))
+        mockMvc.perform(get("/api/reactions/comment/{commentId}/user/{userId}", commentId, userId))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(reactionId.toString()))
                 .andExpect(jsonPath("$.reactionType").value("UPVOTE"));
@@ -159,8 +177,7 @@ class ReactionControllerTest {
     void testGetUserReactionNotFound() throws Exception {
         when(reactionService.getUserReaction(commentId, userId)).thenReturn(null);
 
-        mockMvc.perform(get("/api/reactions/comment/{commentId}/user/{userId}", commentId, userId)
-                        .with(httpBasic(TEST_USER, PASSWORD)))
+        mockMvc.perform(get("/api/reactions/comment/{commentId}/user/{userId}", commentId, userId))
                 .andExpect(status().isNotFound());
 
         verify(reactionService, times(1)).getUserReaction(commentId, userId);

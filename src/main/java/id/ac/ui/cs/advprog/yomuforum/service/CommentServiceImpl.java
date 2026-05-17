@@ -4,6 +4,10 @@ import id.ac.ui.cs.advprog.yomuforum.exception.CommentNotFoundException;
 import id.ac.ui.cs.advprog.yomuforum.exception.ForbiddenException;
 import id.ac.ui.cs.advprog.yomuforum.exception.InvalidInputException;
 import id.ac.ui.cs.advprog.yomuforum.model.Comment;
+import id.ac.ui.cs.advprog.yomuforum.model.composite.CommentComponent;
+import id.ac.ui.cs.advprog.yomuforum.model.observer.CommentEvent;
+import id.ac.ui.cs.advprog.yomuforum.model.observer.CommentEventPublisher;
+import id.ac.ui.cs.advprog.yomuforum.model.observer.EventType;
 import id.ac.ui.cs.advprog.yomuforum.repository.CommentRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -16,6 +20,8 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class CommentServiceImpl implements CommentService {
     private final CommentRepository commentRepository;
+    private final CommentTreeBuilder commentTreeBuilder;
+    private final CommentEventPublisher commentEventPublisher;
 
     @Override
     public Comment createComment(Comment comment) {
@@ -29,7 +35,14 @@ public class CommentServiceImpl implements CommentService {
         comment.setId(UUID.randomUUID());
         comment.setCreatedAt(new Date());
         comment.setUpdatedAt(new Date());
-        return commentRepository.save(comment);
+        Comment saved = commentRepository.save(comment);
+
+        // Observer Pattern: notify subscribers about new comment
+        commentEventPublisher.notifySubscribers(
+                new CommentEvent(EventType.COMMENT_CREATED, saved.getId(), saved.getUserId(),
+                        "Comment created on reading " + saved.getReadingId()));
+
+        return saved;
     }
 
     @Override
@@ -51,7 +64,14 @@ public class CommentServiceImpl implements CommentService {
 
         existingComment.setContent(comment.getContent());
         existingComment.setUpdatedAt(new Date());
-        return commentRepository.save(existingComment);
+        Comment saved = commentRepository.save(existingComment);
+
+        // Observer Pattern: notify subscribers about comment update
+        commentEventPublisher.notifySubscribers(
+                new CommentEvent(EventType.COMMENT_UPDATED, saved.getId(), actorUserId,
+                        "Comment updated"));
+
+        return saved;
     }
 
     @Override
@@ -68,6 +88,11 @@ public class CommentServiceImpl implements CommentService {
         }
 
         commentRepository.deleteById(id);
+
+        // Observer Pattern: notify subscribers about comment deletion
+        commentEventPublisher.notifySubscribers(
+                new CommentEvent(EventType.COMMENT_DELETED, id, actorUserId,
+                        "Comment deleted"));
     }
 
     @Override
@@ -94,5 +119,15 @@ public class CommentServiceImpl implements CommentService {
     @Override
     public List<Comment> getCommentsByUserId(UUID userId) {
         return commentRepository.findByUserId(userId);
+    }
+
+    /**
+     * Composite Pattern: Builds a nested comment tree for a given reading.
+     * Uses CommentTreeBuilder to convert flat list into tree structure.
+     */
+    @Override
+    public List<CommentComponent> getCommentTreeByReadingId(UUID readingId) {
+        List<Comment> flatComments = commentRepository.findByReadingId(readingId);
+        return commentTreeBuilder.buildTree(flatComments);
     }
 }
