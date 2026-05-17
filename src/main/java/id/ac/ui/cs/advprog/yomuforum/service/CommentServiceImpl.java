@@ -19,6 +19,8 @@ import java.util.UUID;
 @Service
 @RequiredArgsConstructor
 public class CommentServiceImpl implements CommentService {
+    private static final String COMMENT_NOT_FOUND_MESSAGE = "Comment not found";
+
     private final CommentRepository commentRepository;
     private final CommentTreeBuilder commentTreeBuilder;
     private final CommentEventPublisher commentEventPublisher;
@@ -48,7 +50,7 @@ public class CommentServiceImpl implements CommentService {
     @Override
     public Comment updateComment(UUID id, Comment comment, UUID actorUserId, boolean isAdmin) {
         Comment existingComment = commentRepository.findById(id)
-                .orElseThrow(() -> new CommentNotFoundException("Comment not found"));
+                .orElseThrow(() -> new CommentNotFoundException(COMMENT_NOT_FOUND_MESSAGE));
 
         if (comment.getContent() == null || comment.getContent().isBlank()) {
             throw new InvalidInputException("Content cannot be empty");
@@ -77,7 +79,7 @@ public class CommentServiceImpl implements CommentService {
     @Override
     public void deleteComment(UUID id, UUID actorUserId, boolean isAdmin) {
         Comment existingComment = commentRepository.findById(id)
-                .orElseThrow(() -> new CommentNotFoundException("Comment not found"));
+                .orElseThrow(() -> new CommentNotFoundException(COMMENT_NOT_FOUND_MESSAGE));
 
         if (actorUserId == null) {
             throw new InvalidInputException("userId is required");
@@ -98,7 +100,7 @@ public class CommentServiceImpl implements CommentService {
     @Override
     public Comment getCommentById(UUID id) {
         return commentRepository.findById(id)
-                .orElseThrow(() -> new CommentNotFoundException("Comment not found"));
+                .orElseThrow(() -> new CommentNotFoundException(COMMENT_NOT_FOUND_MESSAGE));
     }
 
     @Override
