@@ -14,6 +14,7 @@ import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.http.MediaType;
+import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.Arrays;
@@ -24,6 +25,7 @@ import java.util.UUID;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -382,5 +384,35 @@ class CommentControllerTest {
                 .andExpect(jsonPath("$[0].userId").value(userId.toString()));
 
         verify(commentService, times(1)).getCommentsByUserId(userId);
+    }
+
+    @Test
+    void testGetCommentTree() throws Exception {
+        when(commentService.getCommentTreeByReadingId(readingId)).thenReturn(List.of());
+
+        mockMvc.perform(get("/api/comments/reading/{readingId}/tree", readingId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$").isEmpty());
+
+        verify(commentService, times(1)).getCommentTreeByReadingId(readingId);
+    }
+
+    @Test
+    void testPrivateHelpers() {
+        CommentController controller = new CommentController(commentService);
+
+        assertNull(ReflectionTestUtils.invokeMethod(controller, "parseUuid", (String) null));
+        assertNull(ReflectionTestUtils.invokeMethod(controller, "parseUuid", "   "));
+        assertEquals(UUID.fromString(VALID_USER_UUID), ReflectionTestUtils.invokeMethod(controller, "parseUuid", VALID_USER_UUID));
+        assertThrows(Exception.class, () -> ReflectionTestUtils.invokeMethod(controller, "parseUuid", INVALID_USER));
+
+        assertThrows(Exception.class, () -> ReflectionTestUtils.invokeMethod(controller, "parseRequiredUuid", "", "userId"));
+        assertEquals(UUID.fromString(VALID_USER_UUID), ReflectionTestUtils.invokeMethod(controller, "parseRequiredUuid", VALID_USER_UUID, "userId"));
+
+        assertTrue((Boolean) ReflectionTestUtils.invokeMethod(controller, "isAdmin", "ADMIN"));
+        assertFalse((Boolean) ReflectionTestUtils.invokeMethod(controller, "isAdmin", "USER"));
+
+        assertEquals(VALID_USER_UUID, ReflectionTestUtils.invokeMethod(controller, "resolveUserId", VALID_USER_UUID, "fallback"));
+        assertEquals("fallback", ReflectionTestUtils.invokeMethod(controller, "resolveUserId", "", "fallback"));
     }
 }

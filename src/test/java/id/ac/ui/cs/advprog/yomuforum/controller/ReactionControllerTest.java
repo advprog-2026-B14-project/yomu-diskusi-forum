@@ -13,6 +13,7 @@ import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.http.MediaType;
+import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.Arrays;
@@ -22,6 +23,7 @@ import java.util.UUID;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -181,5 +183,24 @@ class ReactionControllerTest {
                 .andExpect(status().isNotFound());
 
         verify(reactionService, times(1)).getUserReaction(commentId, userId);
+    }
+
+    @Test
+    void testPrivateHelpers() {
+        ReactionController controller = new ReactionController(reactionService);
+
+        assertNull(ReflectionTestUtils.invokeMethod(controller, "parseUuid", (String) null));
+        assertNull(ReflectionTestUtils.invokeMethod(controller, "parseUuid", "   "));
+        assertEquals(UUID.fromString(TEST_USER), ReflectionTestUtils.invokeMethod(controller, "parseUuid", TEST_USER));
+        assertThrows(Exception.class, () -> ReflectionTestUtils.invokeMethod(controller, "parseUuid", INVALID_USER));
+
+        assertThrows(Exception.class, () -> ReflectionTestUtils.invokeMethod(controller, "parseRequiredUuid", "", "userId"));
+        assertEquals(UUID.fromString(TEST_USER), ReflectionTestUtils.invokeMethod(controller, "parseRequiredUuid", TEST_USER, "userId"));
+
+        assertTrue((Boolean) ReflectionTestUtils.invokeMethod(controller, "isAdmin", "ADMIN"));
+        assertFalse((Boolean) ReflectionTestUtils.invokeMethod(controller, "isAdmin", "USER"));
+
+        assertEquals(TEST_USER, ReflectionTestUtils.invokeMethod(controller, "resolveUserId", TEST_USER, "fallback"));
+        assertEquals("fallback", ReflectionTestUtils.invokeMethod(controller, "resolveUserId", "", "fallback"));
     }
 }

@@ -77,4 +77,37 @@ class ReactionStrategyContextTest {
                     "No strategy found for " + type);
         }
     }
+
+    @Test
+    void testConstructorWithEmptyStrategiesAndUnknownTypeThrows() {
+        ReactionStrategyContext emptyContext = new ReactionStrategyContext(List.of());
+
+        assertThrows(IllegalArgumentException.class, () -> emptyContext.getStrategy(ReactionType.UPVOTE));
+    }
+
+    @Test
+    void testConstructorIgnoresStrategyWithoutReactionType() {
+        ReactionStrategy nullTypeStrategy = new ReactionStrategy() {
+            @Override
+            public ReactionType getReactionType() {
+                return null;
+            }
+
+            @Override
+            public id.ac.ui.cs.advprog.yomuforum.model.Reaction apply(
+                    id.ac.ui.cs.advprog.yomuforum.model.Reaction reaction,
+                    id.ac.ui.cs.advprog.yomuforum.repository.ReactionRepository repository) {
+                return reaction;
+            }
+
+            @Override
+            public int getScoreValue() {
+                return 0;
+            }
+        };
+
+        ReactionStrategyContext contextWithNullType = new ReactionStrategyContext(List.of(nullTypeStrategy));
+
+        assertThrows(IllegalArgumentException.class, () -> contextWithNullType.getStrategy(ReactionType.UPVOTE));
+    }
 }

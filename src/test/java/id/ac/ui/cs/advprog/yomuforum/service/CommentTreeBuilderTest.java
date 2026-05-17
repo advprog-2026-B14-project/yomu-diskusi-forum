@@ -2,8 +2,11 @@ package id.ac.ui.cs.advprog.yomuforum.service;
 
 import id.ac.ui.cs.advprog.yomuforum.model.Comment;
 import id.ac.ui.cs.advprog.yomuforum.model.composite.CommentComponent;
+import id.ac.ui.cs.advprog.yomuforum.model.composite.CommentComposite;
+import id.ac.ui.cs.advprog.yomuforum.model.composite.CommentLeaf;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import java.util.*;
 
@@ -164,5 +167,30 @@ class CommentTreeBuilderTest {
         assertEquals("Test content", node.getContent());
         assertNotNull(node.getCreatedAt());
         assertNotNull(node.getUpdatedAt());
+    }
+
+    @Test
+    void testConvertToLeafIfNeededKeepsLeafChildren() {
+        UUID rootId = UUID.randomUUID();
+        UUID childId = UUID.randomUUID();
+
+        Comment root = createComment(rootId, null, "Root");
+        Comment child = createComment(childId, rootId, "Child");
+
+        CommentComposite rootComposite = new CommentComposite(root);
+        rootComposite.addChild(new CommentLeaf(child));
+
+        CommentComponent result = (CommentComponent) ReflectionTestUtils.invokeMethod(
+                treeBuilder,
+                "convertToLeafIfNeeded",
+                rootComposite,
+                Set.of(rootId)
+        );
+
+        assertNotNull(result);
+        assertFalse(result.isLeaf());
+        assertEquals(1, result.getChildren().size());
+        assertTrue(result.getChildren().get(0).isLeaf());
+        assertEquals("Child", result.getChildren().get(0).getContent());
     }
 }

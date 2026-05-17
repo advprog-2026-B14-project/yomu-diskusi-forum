@@ -196,11 +196,12 @@ class CommentServiceImplTest {
     void testUpdateCommentForbidden() {
         Comment updatedComment = new Comment();
         updatedComment.setContent("Updated content");
+        UUID otherUserId = UUID.randomUUID();
 
         when(commentRepository.findById(commentId)).thenReturn(Optional.of(comment));
 
         ForbiddenException exception = assertThrows(ForbiddenException.class,
-                () -> commentService.updateComment(commentId, updatedComment, UUID.randomUUID(), false));
+            () -> commentService.updateComment(commentId, updatedComment, otherUserId, false));
 
         assertEquals("You can only edit your own comments", exception.getMessage());
         verify(commentRepository, never()).save(any(Comment.class));
