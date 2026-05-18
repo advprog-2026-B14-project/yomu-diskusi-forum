@@ -88,6 +88,10 @@ tasks.register<Test>("functionalTest") {
     }
 }
 
+tasks.bootJar {
+    archiveFileName.set("app.jar")
+}
+
 tasks.jacocoTestReport {
     dependsOn(tasks.test) 
     reports {
