@@ -30,7 +30,9 @@ jobs:
           fetch-depth: 0
 
       - name: Deploy to Koyeb (official action)
-        uses: koyeb/koyeb-action@v1
+        # SECURITY: pin action to specific commit SHA to avoid supply-chain changes
+        # Replace <FULL_COMMIT_SHA> with the full commit SHA from the koyeb/koyeb-action repository
+        uses: koyeb/koyeb-action@<FULL_COMMIT_SHA>
         with:
           api-token: ${{ secrets.KOYEB_API_TOKEN }}
           app-name: ${{ vars.KOYEB_APP_NAME }}
