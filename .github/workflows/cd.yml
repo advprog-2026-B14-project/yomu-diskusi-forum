@@ -1,64 +1,51 @@
-name: Continuous Deployment (Zero Token Version)
+name: Continuous Deployment (Koyeb)
 
 on:
   push:
     branches:
       - main
+  workflow_dispatch:
 
 permissions:
   contents: read
 
+concurrency:
+  group: koyeb-production
+  cancel-in-progress: true
+
 jobs:
   deploy:
+    name: Deploy to Koyeb
     runs-on: ubuntu-latest
 
+    env:
+      KOYEB_API_TOKEN: ${{ secrets.KOYEB_API_TOKEN }}
+      KOYEB_APP_NAME: ${{ vars.KOYEB_APP_NAME }}
+      KOYEB_SERVICE_NAME: ${{ vars.KOYEB_SERVICE_NAME }}
+
     steps:
-      - name: Checkout Code
-        uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744
-
-      - name: Set up JDK 21
-        uses: actions/setup-java@17f84c3641ba7b8f6deff6309fc4c864478f5d62
+      - name: Check out repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
-          java-version: "21"
-          distribution: "temurin"
-          cache: gradle
+          fetch-depth: 0
 
-      - name: Grant execute permission for Gradle Wrapper
-        run: chmod +x ./gradlew
+      - name: Install Koyeb CLI
+        run: |
+          curl -fsSL https://raw.githubusercontent.com/koyeb/koyeb-cli/master/install.sh | sh
+          echo "$HOME/.koyeb/bin" >> "$GITHUB_PATH"
 
-      - name: Build JAR with Gradle
-        run: ./gradlew clean bootJar -x test
+      - name: Deploy project directory to Koyeb
+        run: |
+          APP_NAME="${KOYEB_APP_NAME:-yomu-diskusi-forum}"
+          SERVICE_NAME="${KOYEB_SERVICE_NAME:-yomu-diskusi-forum}"
 
-      - name: Copy JAR and Dockerfile to EC2
-        uses: appleboy/scp-action@ff85246acaad7bdce478db94a363cd2bf7c90345
-        with:
-          host: 18.207.58.155
-          username: ubuntu
-          key: ${{ secrets.EC2_SSH_KEY }}
-          source: "build/libs/*.jar,Dockerfile"
-          target: "~/yomu-app"
-          strip_components: 0
-
-      - name: Build and Run Docker on EC2
-        uses: appleboy/ssh-action@2ead5e36573f08b82fbfce1504f1a4b05a647c6f
-        with:
-          host: 18.207.58.155
-          username: ubuntu
-          key: ${{ secrets.EC2_SSH_KEY }}
-          script: |
-            cd ~/yomu-app
-            # Stop container lama
-            sudo docker stop yomu-diskusi-forum || true
-            sudo docker rm yomu-diskusi-forum || true
-
-            # Build image baru secara lokal di EC2 (Nggak butuh ECR/Token)
-            sudo docker build -t yomu-diskusi-forum:latest .
-
-            # Jalankan dengan Env Var Database
-            sudo docker run -d \
-              --name yomu-diskusi-forum \
-              -p 8085:8085 \
-              -e SPRING_DATASOURCE_URL="${{ secrets.DB_URL }}" \
-              -e SPRING_DATASOURCE_USERNAME="${{ secrets.DB_USERNAME }}" \
-              -e SPRING_DATASOURCE_PASSWORD="${{ secrets.DB_PASSWORD }}" \
-              yomu-diskusi-forum:latest
+          koyeb deploy . "${APP_NAME}/${SERVICE_NAME}" \
+            --token "$KOYEB_API_TOKEN" \
+            --archive-builder docker \
+            --archive-docker-dockerfile Dockerfile \
+            --env PORT=8080 \
+            --ports 8080:http \
+            --routes /:8080 \
+            --checks 8080:tcp \
+            --wait \
+            --wait-timeout 20m
