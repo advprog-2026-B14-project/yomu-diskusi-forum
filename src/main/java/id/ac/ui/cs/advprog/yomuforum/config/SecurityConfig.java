@@ -114,7 +114,10 @@ public class SecurityConfig {
 
         // Debug: log the resolved CORS settings for troubleshooting tests
         try {
-            logger.debug("CORS resolved - exactOrigins={}, originPatterns={}, allowCredentials={}", exactOrigins, originPatterns, configuration.getAllowCredentials());
+            logger.debug("CORS resolved - exactOrigins={} originPatterns={} allowCredentials={}",
+                    exactOrigins,
+                    originPatterns,
+                    configuration.getAllowCredentials());
         } catch (Exception e) {
             // ignore logging errors
         }
