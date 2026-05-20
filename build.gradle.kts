@@ -118,6 +118,8 @@ tasks.jacocoTestReport {
 
 
 tasks.register<JacocoCoverageVerification>("verifyJaCoCoCoverage") {
+    group = "verification"
+    description = "Verify JaCoCo code coverage meets project thresholds"
     dependsOn(tasks.jacocoTestReport)
     dependsOn(tasks.test)
     val classes = fileTree("${buildDir}/classes/java/main") {

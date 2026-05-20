@@ -48,79 +48,14 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        List<String> exactOrigins = new ArrayList<>();
-        List<String> originPatterns = new ArrayList<>();
 
-        boolean isProd = false;
-        try {
-            String[] active = env.getActiveProfiles();
-            for (String p : active) {
-                if (p != null && (p.equalsIgnoreCase("prod") || p.equalsIgnoreCase("production"))) {
-                    isProd = true;
-                    break;
-                }
-            }
-        } catch (Exception e) {
-            // ignore - treat as non-prod
-        }
+        boolean isProd = isProductionProfile();
+        Origins origins = resolveOrigins(allowedOrigins, isProd);
 
-        if (allowedOrigins == null || allowedOrigins.isBlank()) {
-            if (isProd) {
-                // In production, require explicit configuration. Default to no CORS allowed.
-                logger.warn("No CORS allowed origins configured in production; CORS will be disabled.");
-            } else {
-                // development-friendly default
-                originPatterns.add("http://localhost:*");
-            }
-        } else if (allowedOrigins.trim().equals("*")) {
-            // wildcard allowed origins: explicitly disallow credentials
-            configuration.setAllowedOriginPatterns(List.of("*"));
-            if (allowCredentials) {
-                logger.warn("Wildcard CORS origins with credentials enabled is unsafe; disabling credentials.");
-            }
-            configuration.setAllowCredentials(false);
-        } else {
-            List<String> origins = Arrays.stream(allowedOrigins.split(","))
-                    .map(String::trim)
-                    .filter(s -> !s.isEmpty())
-                    .collect(Collectors.toList());
-            for (String origin : origins) {
-                if (origin.contains("*")) {
-                    originPatterns.add(origin);
-                } else {
-                    exactOrigins.add(origin);
-                }
-            }
-        }
+        applyOrigins(configuration, origins);
 
-        if (!exactOrigins.isEmpty()) {
-            configuration.setAllowedOrigins(exactOrigins);
-        }
-
-        if (!originPatterns.isEmpty()) {
-            configuration.setAllowedOriginPatterns(originPatterns);
-        }
-
-        // If any allowed origin pattern is exactly "*", do not allow credentials even if configured.
-        boolean hasWildcardPattern = originPatterns.stream().anyMatch(p ->
-            p.equals("*")
-        );
-        if (hasWildcardPattern && allowCredentials) {
-            logger.warn("Disabling credentials because allowed origin patterns contain a wildcard.");
-            configuration.setAllowCredentials(false);
-        } else {
-            configuration.setAllowCredentials(allowCredentials);
-        }
-
-        // Debug: log the resolved CORS settings for troubleshooting tests
-        try {
-            logger.debug("CORS resolved - exactOrigins={} originPatterns={} allowCredentials={}",
-                    exactOrigins,
-                    originPatterns,
-                    configuration.getAllowCredentials());
-        } catch (Exception e) {
-            // ignore logging errors
-        }
+        boolean finalAllowCredentials = computeAllowCredentials(allowCredentials, origins);
+        configuration.setAllowCredentials(finalAllowCredentials);
 
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of(
@@ -131,9 +66,89 @@ public class SecurityConfig {
                 "X-Requested-With",
                 "X-User-Id",
                 "X-User-Role"));
+
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
         return source;
+    }
+
+    private boolean isProductionProfile() {
+        try {
+            String[] active = env.getActiveProfiles();
+            for (String p : active) {
+                if (p != null && (p.equalsIgnoreCase("prod") || p.equalsIgnoreCase("production"))) {
+                    return true;
+                }
+            }
+        } catch (Exception e) {
+            // ignore
+        }
+        return false;
+    }
+
+    private static final class Origins {
+        final List<String> exactOrigins;
+        final List<String> originPatterns;
+
+        Origins(List<String> exactOrigins, List<String> originPatterns) {
+            this.exactOrigins = exactOrigins;
+            this.originPatterns = originPatterns;
+        }
+    }
+
+    private Origins resolveOrigins(String allowedOrigins, boolean isProd) {
+        List<String> exactOrigins = new ArrayList<>();
+        List<String> originPatterns = new ArrayList<>();
+
+        if (allowedOrigins == null || allowedOrigins.isBlank()) {
+            if (isProd) {
+                logger.warn("No CORS allowed origins configured in production; CORS will be disabled.");
+            } else {
+                originPatterns.add("http://localhost:*");
+            }
+            return new Origins(exactOrigins, originPatterns);
+        }
+
+        if (allowedOrigins.trim().equals("*")) {
+            originPatterns.add("*");
+            return new Origins(exactOrigins, originPatterns);
+        }
+
+        List<String> parsed = Arrays.stream(allowedOrigins.split(","))
+                .map(String::trim)
+                .filter(s -> !s.isEmpty())
+                .collect(Collectors.toList());
+
+        for (String origin : parsed) {
+            if (origin.contains("*")) {
+                originPatterns.add(origin);
+            } else {
+                exactOrigins.add(origin);
+            }
+        }
+
+        return new Origins(exactOrigins, originPatterns);
+    }
+
+    private void applyOrigins(CorsConfiguration configuration, Origins origins) {
+        if (!origins.exactOrigins.isEmpty()) {
+            configuration.setAllowedOrigins(origins.exactOrigins);
+        }
+        if (!origins.originPatterns.isEmpty()) {
+            configuration.setAllowedOriginPatterns(origins.originPatterns);
+        }
+    }
+
+    private boolean computeAllowCredentials(boolean configuredAllowCredentials, Origins origins) {
+        boolean hasFullWildcard = origins.originPatterns.stream().anyMatch(p -> p.equals("*"));
+        if (hasFullWildcard) {
+            if (configuredAllowCredentials) {
+                logger.warn("Wildcard CORS origins with credentials enabled is unsafe; disabling credentials.");
+            }
+            return false;
+        }
+
+        return configuredAllowCredentials;
     }
 }
 
