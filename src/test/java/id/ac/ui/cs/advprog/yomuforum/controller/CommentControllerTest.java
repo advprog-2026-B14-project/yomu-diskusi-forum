@@ -1,7 +1,6 @@
 package id.ac.ui.cs.advprog.yomuforum.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import id.ac.ui.cs.advprog.yomuforum.config.SecurityConfig;
 import id.ac.ui.cs.advprog.yomuforum.dto.CommentRequest;
 import id.ac.ui.cs.advprog.yomuforum.exception.CommentNotFoundException;
 import id.ac.ui.cs.advprog.yomuforum.exception.ForbiddenException;
