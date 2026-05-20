@@ -1,9 +1,11 @@
 plugins {
     java
     jacoco
+    id("checkstyle")
     id("org.springframework.boot") version "3.4.2"
     id("io.spring.dependency-management") version "1.1.7"
     id("org.sonarqube") version "7.1.0.6387"
+    id("org.owasp.dependencycheck") version "8.4.0"
 }
 
 group = "id.ac.ui.cs.advprog"
@@ -21,10 +23,27 @@ java {
     }
 }
 
+checkstyle {
+    toolVersion = "10.12.0"
+    configFile = file("config/checkstyle/checkstyle.xml")
+}
+
+// Use a relaxed Checkstyle config for test sources to avoid large bulk fixes
+tasks.named<org.gradle.api.plugins.quality.Checkstyle>("checkstyleTest") {
+    configFile = file("config/checkstyle/checkstyle-test.xml")
+}
+
+tasks.register("runCheckstyle") {
+    group = "verification"
+    description = "Run Checkstyle for main and test sources"
+    dependsOn("checkstyleMain", "checkstyleTest")
+}
+
 configurations {
     compileOnly {
         extendsFrom(configurations.annotationProcessor.get())
     }
+
 }
 
 repositories {
@@ -100,6 +119,39 @@ tasks.jacocoTestReport {
     }
 }
 
+import org.gradle.testing.jacoco.tasks.JacocoCoverageVerification
+
+tasks.register<JacocoCoverageVerification>("jacocoTestCoverageVerification") {
+    dependsOn(tasks.test)
+
+    // use compiled classes, excluding generated sources if any
+    val classes = fileTree("${buildDir}/classes/java/main") {
+        exclude("**/generated/**")
+    }
+    classDirectories.setFrom(classes)
+    sourceDirectories.setFrom(files("src/main/java"))
+    executionData.setFrom(fileTree(buildDir).include("**/jacoco/*.exec"))
+
+    violationRules {
+        rule {
+            limit {
+                counter = "LINE"
+                value = "COVERED_RATIO"
+                minimum = "0.90".toBigDecimal()
+            }
+        }
+    }
+}
+
+tasks.named("check") {
+    dependsOn("jacocoTestCoverageVerification")
+}
+
+dependencyCheck {
+    formats = listOf("ALL")
+    outputDirectory = "${buildDir}/reports/dependency-check"
+}
+
 sonar {
     properties {
         property("sonar.projectKey", "advprog-2026-B14-project_yomu-diskusi-forum")
@@ -108,3 +160,4 @@ sonar {
         property("sonar.coverage.jacoco.xmlReportPaths", "build/reports/jacoco/test/jacocoTestReport.xml")
     }
 }
+    

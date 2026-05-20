@@ -28,13 +28,22 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(ForbiddenException.class)
     public ResponseEntity<Map<String, String>> handleForbidden(ForbiddenException ex) {
-        return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                .body(Map.of(MESSAGE_KEY, ex.getMessage()));
+        return ResponseEntity
+            .status(HttpStatus.FORBIDDEN)
+            .body(Map.of(MESSAGE_KEY, ex.getMessage()));
     }
 
-    @ExceptionHandler({InvalidInputException.class, MethodArgumentTypeMismatchException.class, MethodArgumentNotValidException.class})
-    public ResponseEntity<Map<String, String>> handleBadRequest(Exception ex) {
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+        @ExceptionHandler({
+            InvalidInputException.class,
+            MethodArgumentTypeMismatchException.class,
+            MethodArgumentNotValidException.class
+        })
+        public ResponseEntity<Map<String, String>>
+        handleBadRequest(
+            Exception ex
+        ) {
+            return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
                 .body(Map.of(MESSAGE_KEY, ex.getMessage()));
-    }
+        }
 }
