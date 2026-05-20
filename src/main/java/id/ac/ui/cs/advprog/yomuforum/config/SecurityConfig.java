@@ -101,13 +101,22 @@ public class SecurityConfig {
             configuration.setAllowedOriginPatterns(originPatterns);
         }
 
-        // If any allowed origin pattern is wildcard-ish, do not allow credentials even if configured.
-        boolean hasWildcardPattern = originPatterns.stream().anyMatch(p -> p.equals("*") || p.contains("*"));
+        // If any allowed origin pattern is exactly "*", do not allow credentials even if configured.
+        boolean hasWildcardPattern = originPatterns.stream().anyMatch(p ->
+            p.equals("*")
+        );
         if (hasWildcardPattern && allowCredentials) {
             logger.warn("Disabling credentials because allowed origin patterns contain a wildcard.");
             configuration.setAllowCredentials(false);
         } else {
             configuration.setAllowCredentials(allowCredentials);
+        }
+
+        // Debug: log the resolved CORS settings for troubleshooting tests
+        try {
+            logger.debug("CORS resolved - exactOrigins={}, originPatterns={}, allowCredentials={}", exactOrigins, originPatterns, configuration.getAllowCredentials());
+        } catch (Exception e) {
+            // ignore logging errors
         }
 
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
@@ -124,3 +133,4 @@ public class SecurityConfig {
         return source;
     }
 }
+
