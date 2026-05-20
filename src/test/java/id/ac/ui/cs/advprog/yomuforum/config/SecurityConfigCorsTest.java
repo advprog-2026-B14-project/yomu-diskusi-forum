@@ -1,6 +1,7 @@
 package id.ac.ui.cs.advprog.yomuforum.config;
 
 import org.junit.jupiter.api.Test;
+import org.springframework.mock.env.MockEnvironment;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
@@ -20,7 +21,7 @@ class SecurityConfigCorsTest {
 
     @Test
     void blankAllowedOriginsAddsLocalhostPattern() throws Exception {
-        SecurityConfig cfg = new SecurityConfig();
+        SecurityConfig cfg = new SecurityConfig(new MockEnvironment());
         setField(cfg, "allowedOrigins", "");
         setField(cfg, "allowCredentials", true);
 
@@ -39,7 +40,7 @@ class SecurityConfigCorsTest {
 
     @Test
     void asteriskAllowedOriginsSetsPatternAndRespectsAllowCredentialsField() throws Exception {
-        SecurityConfig cfg = new SecurityConfig();
+        SecurityConfig cfg = new SecurityConfig(new MockEnvironment());
         setField(cfg, "allowedOrigins", "*");
         setField(cfg, "allowCredentials", false);
 
@@ -56,7 +57,7 @@ class SecurityConfigCorsTest {
 
     @Test
     void commaSeparatedOriginsAreSplitIntoExactAndPatternLists() throws Exception {
-        SecurityConfig cfg = new SecurityConfig();
+        SecurityConfig cfg = new SecurityConfig(new MockEnvironment());
         setField(cfg, "allowedOrigins", "https://example.com, https://*.example.org, , http://localhost:3000");
         setField(cfg, "allowCredentials", true);
 
