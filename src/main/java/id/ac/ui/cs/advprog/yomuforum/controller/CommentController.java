@@ -3,14 +3,13 @@ package id.ac.ui.cs.advprog.yomuforum.controller;
 import id.ac.ui.cs.advprog.yomuforum.dto.CommentRequest;
 import id.ac.ui.cs.advprog.yomuforum.exception.InvalidInputException;
 import id.ac.ui.cs.advprog.yomuforum.model.Comment;
+import id.ac.ui.cs.advprog.yomuforum.model.composite.CommentComponent;
 import id.ac.ui.cs.advprog.yomuforum.service.CommentService;
-import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.security.Principal;
 import java.util.List;
 import java.util.UUID;
 
@@ -19,12 +18,16 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class CommentController {
     private final CommentService commentService;
+    private static final String USER_ID = "userId";
 
     @PostMapping
-    public ResponseEntity<Comment> createComment(@RequestBody CommentRequest request) {
+    public ResponseEntity<Comment> createComment(
+            @RequestHeader(value = "X-User-Id", required = false) String userIdHeader,
+            @RequestBody CommentRequest request) {
         Comment comment = new Comment();
         comment.setContent(request.getContent());
-        comment.setUserId(parseRequiredUuid(request.getUserId(), "userId"));
+        String resolvedUserId = resolveUserId(userIdHeader, request.getUserId());
+        comment.setUserId(parseRequiredUuid(resolvedUserId, USER_ID));
         comment.setReadingId(parseRequiredUuid(request.getReadingId(), "readingId"));
         comment.setParentCommentId(parseUuid(request.getParentCommentId()));
 
@@ -35,22 +38,27 @@ public class CommentController {
     @PutMapping("/{id}")
     public ResponseEntity<Comment> updateComment(
             @PathVariable("id") UUID id,
-            Principal principal,
-            HttpServletRequest request,
+            @RequestHeader(value = "X-User-Id", required = false) String userIdHeader,
+            @RequestHeader(value = "X-User-Role", required = false) String userRole,
             @RequestBody CommentRequest requestBody) {
         Comment comment = new Comment();
         comment.setContent(requestBody.getContent());
+        String resolvedUserId = resolveUserId(userIdHeader, requestBody.getUserId());
 
-        Comment updatedComment = commentService.updateComment(id, comment, extractUserId(principal), isAdmin(request));
+        Comment updatedComment = commentService.updateComment(
+            id, comment, parseRequiredUuid(resolvedUserId, USER_ID), isAdmin(userRole));
         return ResponseEntity.ok(updatedComment);
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteComment(
             @PathVariable("id") UUID id,
-            Principal principal,
-            HttpServletRequest request) {
-        commentService.deleteComment(id, extractUserId(principal), isAdmin(request));
+            @RequestHeader(value = "X-User-Id", required = false) String userIdHeader,
+            @RequestHeader(value = "X-User-Role", required = false) String userRole,
+            @RequestParam(value = USER_ID, required = false) String userIdParam) {
+        String resolvedUserId = resolveUserId(userIdHeader, userIdParam);
+        commentService.deleteComment(
+                id, parseRequiredUuid(resolvedUserId, USER_ID), isAdmin(userRole));
         return ResponseEntity.noContent().build();
     }
 
@@ -84,11 +92,19 @@ public class CommentController {
         return ResponseEntity.ok(comments);
     }
 
+    /**
+     * Composite Pattern: Returns nested comment tree for a reading.
+     */
+    @GetMapping("/reading/{readingId}/tree")
+    public ResponseEntity<List<CommentComponent>> getCommentTree(@PathVariable("readingId") UUID readingId) {
+        List<CommentComponent> tree = commentService.getCommentTreeByReadingId(readingId);
+        return ResponseEntity.ok(tree);
+    }
+
     private UUID parseUuid(String value) {
         if (value == null || value.isBlank()) {
             return null;
         }
-
         try {
             return UUID.fromString(value);
         } catch (IllegalArgumentException ex) {
@@ -103,19 +119,17 @@ public class CommentController {
         return parseUuid(value);
     }
 
-    private UUID extractUserId(Principal principal) {
-        if (principal == null || principal.getName() == null || principal.getName().isBlank()) {
-            throw new InvalidInputException("Authenticated user is required");
-        }
-
-        try {
-            return UUID.fromString(principal.getName());
-        } catch (IllegalArgumentException ex) {
-            throw new InvalidInputException("Authenticated user id is not a valid UUID");
-        }
+    private boolean isAdmin(String userRole) {
+        return userRole != null && userRole.equalsIgnoreCase("ADMIN");
     }
 
-    private boolean isAdmin(HttpServletRequest request) {
-        return request != null && request.isUserInRole("ADMIN");
+    /**
+     * Resolves userId: prefers header, falls back to body/param.
+     */
+    private String resolveUserId(String headerValue, String bodyValue) {
+        if (headerValue != null && !headerValue.isBlank()) {
+            return headerValue;
+        }
+        return bodyValue;
     }
 }

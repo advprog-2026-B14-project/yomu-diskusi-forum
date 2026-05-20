@@ -12,21 +12,29 @@ import java.util.Map;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
+    private static final String MESSAGE_KEY = "message";
+
     @ExceptionHandler(CommentNotFoundException.class)
     public ResponseEntity<Map<String, String>> handleCommentNotFound(CommentNotFoundException ex) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                .body(Map.of("message", ex.getMessage()));
+                .body(Map.of(MESSAGE_KEY, ex.getMessage()));
+    }
+
+    @ExceptionHandler(ReactionNotFoundException.class)
+    public ResponseEntity<Map<String, String>> handleReactionNotFound(ReactionNotFoundException ex) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(Map.of(MESSAGE_KEY, ex.getMessage()));
     }
 
     @ExceptionHandler(ForbiddenException.class)
     public ResponseEntity<Map<String, String>> handleForbidden(ForbiddenException ex) {
         return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                .body(Map.of("message", ex.getMessage()));
+                .body(Map.of(MESSAGE_KEY, ex.getMessage()));
     }
 
     @ExceptionHandler({InvalidInputException.class, MethodArgumentTypeMismatchException.class, MethodArgumentNotValidException.class})
     public ResponseEntity<Map<String, String>> handleBadRequest(Exception ex) {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                .body(Map.of("message", ex.getMessage()));
+                .body(Map.of(MESSAGE_KEY, ex.getMessage()));
     }
 }

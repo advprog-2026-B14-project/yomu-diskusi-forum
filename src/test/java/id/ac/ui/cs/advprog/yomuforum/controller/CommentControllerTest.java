@@ -11,14 +11,10 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import org.springframework.security.core.userdetails.User;
-import org.springframework.security.core.userdetails.UserDetailsService;
-import org.springframework.security.provisioning.InMemoryUserDetailsManager;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.http.MediaType;
+import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.Arrays;
@@ -29,41 +25,17 @@ import java.util.UUID;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.httpBasic;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(CommentController.class)
-@Import({SecurityConfig.class, CommentControllerTest.TestSecurityUsers.class})
+@Import(SecurityConfig.class)
 class CommentControllerTest {
 
     static final String VALID_USER_UUID = "11111111-1111-1111-1111-111111111111";
     static final String ADMIN_USER_UUID = "22222222-2222-2222-2222-222222222222";
     static final String INVALID_USER = "not-a-uuid";
-    static final String PASSWORD = "password";
-
-    @org.springframework.boot.test.context.TestConfiguration
-    static class TestSecurityUsers {
-        @Bean
-        public UserDetailsService userDetailsService() {
-            var normalUser = User.builder()
-                    .username(VALID_USER_UUID)
-                    .password("{noop}" + PASSWORD)
-                    .authorities(new SimpleGrantedAuthority("ROLE_USER"))
-                    .build();
-            var adminUser = User.builder()
-                    .username(ADMIN_USER_UUID)
-                    .password("{noop}" + PASSWORD)
-                    .authorities(new SimpleGrantedAuthority("ROLE_ADMIN"))
-                    .build();
-            var invalidUser = User.builder()
-                    .username(INVALID_USER)
-                    .password("{noop}" + PASSWORD)
-                    .authorities(new SimpleGrantedAuthority("ROLE_USER"))
-                    .build();
-            return new InMemoryUserDetailsManager(normalUser, adminUser, invalidUser);
-        }
-    }
 
     @Autowired
     private MockMvc mockMvc;
@@ -105,9 +77,10 @@ class CommentControllerTest {
         when(commentService.createComment(any(Comment.class))).thenReturn(comment);
 
         mockMvc.perform(post("/api/comments")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isCreated())
+                .header("X-User-Id", VALID_USER_UUID)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
+            .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.id").value(commentId.toString()))
                 .andExpect(jsonPath("$.content").value("Test comment"));
 
@@ -124,9 +97,10 @@ class CommentControllerTest {
         when(commentService.createComment(any(Comment.class))).thenReturn(comment);
 
         mockMvc.perform(post("/api/comments")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isCreated())
+                .header("X-User-Id", VALID_USER_UUID)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
+            .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.id").value(commentId.toString()))
                 .andExpect(jsonPath("$.content").value("Test comment"));
 
@@ -142,24 +116,10 @@ class CommentControllerTest {
         request.setParentCommentId("not-a-uuid");
 
         mockMvc.perform(post("/api/comments")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isBadRequest());
-
-        verify(commentService, never()).createComment(any(Comment.class));
-    }
-
-    @Test
-    void testCreateCommentWithBlankUserId() throws Exception {
-        CommentRequest request = new CommentRequest();
-        request.setContent("Test comment");
-        request.setUserId(" ");
-        request.setReadingId(readingId.toString());
-
-        mockMvc.perform(post("/api/comments")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isBadRequest());
+                .header("X-User-Id", VALID_USER_UUID)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
+            .andExpect(status().isBadRequest());
 
         verify(commentService, never()).createComment(any(Comment.class));
     }
@@ -170,10 +130,11 @@ class CommentControllerTest {
         request.setContent("Test comment");
         request.setReadingId(readingId.toString());
 
+        // No X-User-Id header
         mockMvc.perform(post("/api/comments")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isBadRequest());
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
+            .andExpect(status().isBadRequest());
 
         verify(commentService, never()).createComment(any(Comment.class));
     }
@@ -189,9 +150,10 @@ class CommentControllerTest {
         when(commentService.createComment(any(Comment.class))).thenReturn(comment);
 
         mockMvc.perform(post("/api/comments")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isCreated());
+                .header("X-User-Id", VALID_USER_UUID)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
+            .andExpect(status().isCreated());
 
         verify(commentService, times(1)).createComment(any(Comment.class));
     }
@@ -215,7 +177,7 @@ class CommentControllerTest {
                 .thenReturn(updatedComment);
 
         mockMvc.perform(put("/api/comments/{id}", commentId)
-                        .with(httpBasic(VALID_USER_UUID, PASSWORD))
+                        .header("X-User-Id", VALID_USER_UUID)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
@@ -243,7 +205,8 @@ class CommentControllerTest {
                 .thenReturn(updatedComment);
 
         mockMvc.perform(put("/api/comments/{id}", commentId)
-                        .with(httpBasic(ADMIN_USER_UUID, PASSWORD))
+                        .header("X-User-Id", ADMIN_USER_UUID)
+                        .header("X-User-Role", "ADMIN")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
@@ -253,14 +216,14 @@ class CommentControllerTest {
     }
 
     @Test
-    void testUpdateCommentUnauthenticated() throws Exception {
+    void testUpdateCommentWithoutUserId() throws Exception {
         CommentRequest request = new CommentRequest();
         request.setContent("Updated comment");
 
         mockMvc.perform(put("/api/comments/{id}", commentId)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isUnauthorized());
+                .andExpect(status().isBadRequest());
 
         verify(commentService, never()).updateComment(any(), any(), any(), anyBoolean());
     }
@@ -271,7 +234,7 @@ class CommentControllerTest {
         doNothing().when(commentService).deleteComment(commentId, authenticatedUserId, false);
 
         mockMvc.perform(delete("/api/comments/{id}", commentId)
-                        .with(httpBasic(VALID_USER_UUID, PASSWORD)))
+                        .header("X-User-Id", VALID_USER_UUID))
                 .andExpect(status().isNoContent());
 
         verify(commentService, times(1)).deleteComment(commentId, authenticatedUserId, false);
@@ -283,24 +246,25 @@ class CommentControllerTest {
         doNothing().when(commentService).deleteComment(commentId, adminUserId, true);
 
         mockMvc.perform(delete("/api/comments/{id}", commentId)
-                        .with(httpBasic(ADMIN_USER_UUID, PASSWORD)))
+                        .header("X-User-Id", ADMIN_USER_UUID)
+                        .header("X-User-Role", "ADMIN"))
                 .andExpect(status().isNoContent());
 
         verify(commentService, times(1)).deleteComment(commentId, adminUserId, true);
     }
 
     @Test
-    void testDeleteCommentUnauthenticated() throws Exception {
+    void testDeleteCommentWithoutUserId() throws Exception {
         mockMvc.perform(delete("/api/comments/{id}", commentId))
-                .andExpect(status().isUnauthorized());
+                .andExpect(status().isBadRequest());
 
         verify(commentService, never()).deleteComment(any(), any(), anyBoolean());
     }
 
     @Test
-    void testDeleteCommentWithInvalidAuthenticatedUserId() throws Exception {
+    void testDeleteCommentWithInvalidUserId() throws Exception {
         mockMvc.perform(delete("/api/comments/{id}", commentId)
-                        .with(httpBasic(INVALID_USER, PASSWORD)))
+                        .header("X-User-Id", INVALID_USER))
                 .andExpect(status().isBadRequest());
 
         verify(commentService, never()).deleteComment(any(UUID.class), any(UUID.class), anyBoolean());
@@ -316,19 +280,19 @@ class CommentControllerTest {
             .thenThrow(new ForbiddenException("You can only edit your own comments"));
 
         mockMvc.perform(put("/api/comments/{id}", commentId)
-                .with(httpBasic(VALID_USER_UUID, PASSWORD))
+                .header("X-User-Id", VALID_USER_UUID)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
             .andExpect(status().isForbidden());
     }
 
     @Test
-    void testUpdateCommentWithInvalidAuthenticatedUserId() throws Exception {
+    void testUpdateCommentWithInvalidUserId() throws Exception {
         CommentRequest request = new CommentRequest();
         request.setContent("Updated comment");
 
         mockMvc.perform(put("/api/comments/{id}", commentId)
-                        .with(httpBasic(INVALID_USER, PASSWORD))
+                        .header("X-User-Id", INVALID_USER)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest());
@@ -420,5 +384,35 @@ class CommentControllerTest {
                 .andExpect(jsonPath("$[0].userId").value(userId.toString()));
 
         verify(commentService, times(1)).getCommentsByUserId(userId);
+    }
+
+    @Test
+    void testGetCommentTree() throws Exception {
+        when(commentService.getCommentTreeByReadingId(readingId)).thenReturn(List.of());
+
+        mockMvc.perform(get("/api/comments/reading/{readingId}/tree", readingId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$").isEmpty());
+
+        verify(commentService, times(1)).getCommentTreeByReadingId(readingId);
+    }
+
+    @Test
+    void testPrivateHelpers() {
+        CommentController controller = new CommentController(commentService);
+
+        assertNull(ReflectionTestUtils.invokeMethod(controller, "parseUuid", (String) null));
+        assertNull(ReflectionTestUtils.invokeMethod(controller, "parseUuid", "   "));
+        assertEquals(UUID.fromString(VALID_USER_UUID), ReflectionTestUtils.invokeMethod(controller, "parseUuid", VALID_USER_UUID));
+        assertThrows(Exception.class, () -> ReflectionTestUtils.invokeMethod(controller, "parseUuid", INVALID_USER));
+
+        assertThrows(Exception.class, () -> ReflectionTestUtils.invokeMethod(controller, "parseRequiredUuid", "", "userId"));
+        assertEquals(UUID.fromString(VALID_USER_UUID), ReflectionTestUtils.invokeMethod(controller, "parseRequiredUuid", VALID_USER_UUID, "userId"));
+
+        assertTrue((Boolean) ReflectionTestUtils.invokeMethod(controller, "isAdmin", "ADMIN"));
+        assertFalse((Boolean) ReflectionTestUtils.invokeMethod(controller, "isAdmin", "USER"));
+
+        assertEquals(VALID_USER_UUID, ReflectionTestUtils.invokeMethod(controller, "resolveUserId", VALID_USER_UUID, "fallback"));
+        assertEquals("fallback", ReflectionTestUtils.invokeMethod(controller, "resolveUserId", "", "fallback"));
     }
 }

@@ -1,6 +1,7 @@
 package id.ac.ui.cs.advprog.yomuforum.controller;
 
 import id.ac.ui.cs.advprog.yomuforum.dto.ReactionRequest;
+import id.ac.ui.cs.advprog.yomuforum.exception.InvalidInputException;
 import id.ac.ui.cs.advprog.yomuforum.model.Reaction;
 import id.ac.ui.cs.advprog.yomuforum.model.ReactionType;
 import id.ac.ui.cs.advprog.yomuforum.service.ReactionService;
@@ -19,10 +20,13 @@ public class ReactionController {
     private final ReactionService reactionService;
 
     @PostMapping
-    public ResponseEntity<Reaction> addReaction(@RequestBody ReactionRequest request) {
+    public ResponseEntity<Reaction> addReaction(
+            @RequestHeader(value = "X-User-Id", required = false) String userIdHeader,
+            @RequestBody ReactionRequest request) {
         Reaction reaction = new Reaction();
-        reaction.setCommentId(UUID.fromString(request.getCommentId()));
-        reaction.setUserId(UUID.fromString(request.getUserId()));
+        reaction.setCommentId(parseRequiredUuid(request.getCommentId(), "commentId"));
+        String resolvedUserId = resolveUserId(userIdHeader, request.getUserId());
+        reaction.setUserId(parseRequiredUuid(resolvedUserId, "userId"));
         reaction.setReactionType(ReactionType.from(request.getReactionType()));
 
         Reaction addedReaction = reactionService.addReaction(reaction);
@@ -30,8 +34,14 @@ public class ReactionController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> removeReaction(@PathVariable("id") UUID id) {
-        reactionService.removeReaction(id);
+    public ResponseEntity<Void> removeReaction(
+            @PathVariable("id") UUID id,
+            @RequestHeader(value = "X-User-Id", required = false) String userIdHeader,
+            @RequestHeader(value = "X-User-Role", required = false) String userRole,
+            @RequestParam(value = "userId", required = false) String userIdParam) {
+        String resolvedUserId = resolveUserId(userIdHeader, userIdParam);
+        reactionService.removeReaction(
+                id, parseRequiredUuid(resolvedUserId, "userId"), isAdmin(userRole));
         return ResponseEntity.noContent().build();
     }
 
@@ -58,5 +68,37 @@ public class ReactionController {
             return ResponseEntity.ok(reaction);
         }
         return ResponseEntity.notFound().build();
+    }
+
+    private UUID parseUuid(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        try {
+            return UUID.fromString(value);
+        } catch (IllegalArgumentException ex) {
+            throw new InvalidInputException("Invalid UUID format: " + value);
+        }
+    }
+
+    private UUID parseRequiredUuid(String value, String fieldName) {
+        if (value == null || value.isBlank()) {
+            throw new InvalidInputException(fieldName + " is required");
+        }
+        return parseUuid(value);
+    }
+
+    private boolean isAdmin(String userRole) {
+        return userRole != null && userRole.equalsIgnoreCase("ADMIN");
+    }
+
+    /**
+     * Resolves userId: prefers header, falls back to body/param.
+     */
+    private String resolveUserId(String headerValue, String bodyValue) {
+        if (headerValue != null && !headerValue.isBlank()) {
+            return headerValue;
+        }
+        return bodyValue;
     }
 }
