@@ -29,23 +29,17 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Install Koyeb CLI
-        run: |
-          curl -fsSL https://raw.githubusercontent.com/koyeb/koyeb-cli/master/install.sh | sh
-          echo "$HOME/.koyeb/bin" >> "$GITHUB_PATH"
-
-      - name: Deploy project directory to Koyeb
-        run: |
-          APP_NAME="${KOYEB_APP_NAME:-yomu-diskusi-forum}"
-          SERVICE_NAME="${KOYEB_SERVICE_NAME:-yomu-diskusi-forum}"
-
-          koyeb deploy . "${APP_NAME}/${SERVICE_NAME}" \
-            --token "$KOYEB_API_TOKEN" \
-            --archive-builder docker \
-            --archive-docker-dockerfile Dockerfile \
-            --env PORT=8080 \
-            --ports 8080:http \
-            --routes /:8080 \
-            --checks 8080:tcp \
-            --wait \
-            --wait-timeout 20m
+      - name: Deploy to Koyeb (official action)
+        uses: koyeb/koyeb-action@v1
+        with:
+          api-token: ${{ secrets.KOYEB_API_TOKEN }}
+          app-name: ${{ vars.KOYEB_APP_NAME }}
+          service-name: ${{ vars.KOYEB_SERVICE_NAME }}
+          dockerfile: Dockerfile
+          archive-builder: docker
+          env: PORT=8080
+          ports: 8080:http
+          routes: "/:8080"
+          checks: 8080:tcp
+          wait: true
+          wait-timeout: 20m
