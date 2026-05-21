@@ -20,7 +20,7 @@ class CommentEventPublisherTest {
 
     @Test
     void testSubscribeAddsListener() {
-        CommentEventListener listener = event -> {};
+        CommentEventListener listener = event -> { };
         publisher.subscribe(listener);
         assertEquals(1, publisher.getListenerCount());
     }
@@ -33,7 +33,7 @@ class CommentEventPublisherTest {
 
     @Test
     void testSubscribeDuplicateDoesNothing() {
-        CommentEventListener listener = event -> {};
+        CommentEventListener listener = event -> { };
         publisher.subscribe(listener);
         publisher.subscribe(listener);
         assertEquals(1, publisher.getListenerCount());
@@ -41,7 +41,7 @@ class CommentEventPublisherTest {
 
     @Test
     void testUnsubscribeRemovesListener() {
-        CommentEventListener listener = event -> {};
+        CommentEventListener listener = event -> { };
         publisher.subscribe(listener);
         assertEquals(1, publisher.getListenerCount());
 
@@ -51,7 +51,7 @@ class CommentEventPublisherTest {
 
     @Test
     void testUnsubscribeNonExistentDoesNothing() {
-        CommentEventListener listener = event -> {};
+        CommentEventListener listener = event -> { };
         publisher.unsubscribe(listener);
         assertEquals(0, publisher.getListenerCount());
     }
@@ -93,8 +93,8 @@ class CommentEventPublisherTest {
     @Test
     void testConstructorWithInitialListeners() {
         List<CommentEventListener> initial = new ArrayList<>();
-        initial.add(event -> {});
-        initial.add(event -> {});
+        initial.add(event -> { });
+        initial.add(event -> { });
 
         CommentEventPublisherImpl pub = new CommentEventPublisherImpl(initial);
         assertEquals(2, pub.getListenerCount());
