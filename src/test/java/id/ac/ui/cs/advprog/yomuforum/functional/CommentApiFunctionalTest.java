@@ -104,7 +104,7 @@ class CommentApiFunctionalTest {
                 "/api/comments/reading/" + readingId,
                 HttpMethod.GET,
                 null,
-                new ParameterizedTypeReference<List<Comment>>() {}
+                new ParameterizedTypeReference<List<Comment>>() { }
         );
         
         assertEquals(HttpStatus.OK, getByReadingResponse.getStatusCode());
