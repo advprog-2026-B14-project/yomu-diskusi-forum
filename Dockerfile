@@ -13,12 +13,9 @@ WORKDIR /app
 COPY --from=build /app/build/libs/app.jar app.jar
 RUN apk add --no-cache curl
 
-WORKDIR /app
+EXPOSE ${PORT:-8080}
 
-COPY --from=build /app/build/libs/app.jar app.jar
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=5 \
+  CMD curl -f http://localhost:${PORT:-8080}/actuator/health/liveness || exit 1
 
-EXPOSE 8080
-
-HEALTHCHECK --interval=30s --timeout=5s --start-period=10s CMD curl -f http://localhost:8080/actuator/health || exit 1
-
-ENTRYPOINT ["java", "-jar", "app.jar"]
+ENTRYPOINT ["java", "-XX:+UseContainerSupport", "-XX:MaxRAMPercentage=75.0", "-jar", "app.jar"]
