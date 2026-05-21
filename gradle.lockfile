@@ -24,6 +24,7 @@ com.google.guava:failureaccess:1.0.2=checkstyle,testCompileClasspath,testRuntime
 com.google.guava:guava:33.3.1-jre=checkstyle,testCompileClasspath,testRuntimeClasspath
 com.google.guava:listenablefuture:9999.0-empty-to-avoid-conflict-with-guava=checkstyle,testCompileClasspath,testRuntimeClasspath
 com.google.j2objc:j2objc-annotations:3.0.0=checkstyle,testCompileClasspath,testRuntimeClasspath
+com.h2database:h2:2.3.232=productionRuntimeClasspath,runtimeClasspath
 com.jayway.jsonpath:json-path:2.9.0=testCompileClasspath,testRuntimeClasspath
 com.puppycrawl.tools:checkstyle:10.12.0=checkstyle
 com.sun.istack:istack-commons-runtime:4.1.2=productionRuntimeClasspath,runtimeClasspath,testRuntimeClasspath
