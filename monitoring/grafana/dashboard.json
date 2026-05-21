@@ -1,0 +1,15 @@
+{
+  "title": "Yomu Forum - JVM Overview",
+  "panels": [
+    {
+      "type": "graph",
+      "title": "JVM Memory Used (bytes)",
+      "targets": [
+        {
+          "expr": "jvm_memory_used_bytes{area=\"heap\"}",
+          "legendFormat": "heap"
+        }
+      ]
+    }
+  ]
+}
