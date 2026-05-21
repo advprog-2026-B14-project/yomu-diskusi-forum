@@ -5,6 +5,7 @@ import id.ac.ui.cs.advprog.yomuforum.dto.CommentRequest;
 import id.ac.ui.cs.advprog.yomuforum.exception.CommentNotFoundException;
 import id.ac.ui.cs.advprog.yomuforum.exception.ForbiddenException;
 import id.ac.ui.cs.advprog.yomuforum.model.Comment;
+import id.ac.ui.cs.advprog.yomuforum.service.AsyncCommentService;
 import id.ac.ui.cs.advprog.yomuforum.service.CommentService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -41,6 +42,9 @@ class CommentControllerTest {
 
     @MockitoBean
     private CommentService commentService;
+
+    @MockitoBean
+    private AsyncCommentService asyncCommentService;
 
     @Autowired
     private ObjectMapper objectMapper;
@@ -398,7 +402,7 @@ class CommentControllerTest {
 
     @Test
     void testPrivateHelpers() {
-        CommentController controller = new CommentController(commentService);
+        CommentController controller = new CommentController(commentService, asyncCommentService);
 
         assertNull(ReflectionTestUtils.invokeMethod(controller, "parseUuid", (String) null));
         assertNull(ReflectionTestUtils.invokeMethod(controller, "parseUuid", "   "));

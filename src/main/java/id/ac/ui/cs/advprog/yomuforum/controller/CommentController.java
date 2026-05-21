@@ -19,14 +19,19 @@ import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 
+import id.ac.ui.cs.advprog.yomuforum.service.AsyncCommentService;
+
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 
 @RestController
 @RequestMapping("/api/comments")
 @RequiredArgsConstructor
 public class CommentController {
     private final CommentService commentService;
+    private final AsyncCommentService asyncCommentService;
     private static final String USER_ID = "userId";
 
     @PostMapping
@@ -108,6 +113,31 @@ public class CommentController {
     public ResponseEntity<List<CommentComponent>> getCommentTree(@PathVariable("readingId") UUID readingId) {
         List<CommentComponent> tree = commentService.getCommentTreeByReadingId(readingId);
         return ResponseEntity.ok(tree);
+    }
+
+    /**
+     * Async Parallel Endpoint: Mengambil comment tree dan reactions secara bersamaan.
+     * Menggunakan CompletableFuture untuk menjalankan 2 query secara parallel
+     * di thread pool terpisah, sehingga total waktu = max(query1, query2)
+     * bukan query1 + query2.
+     */
+    @GetMapping("/reading/{readingId}/async-tree")
+    public CompletableFuture<Map<String, Object>> getCommentTreeAsync(
+            @PathVariable("readingId") UUID readingId) {
+        // Jalankan kedua operasi di thread terpisah secara parallel
+        CompletableFuture<List<CommentComponent>> treeFuture =
+                asyncCommentService.getCommentTreeAsync(readingId);
+        CompletableFuture<List<Comment>> flatFuture =
+                asyncCommentService.getCommentsByReadingIdAsync(readingId);
+
+        // Combine hasil dari kedua thread setelah keduanya selesai
+        return treeFuture.thenCombine(flatFuture, (tree, flat) ->
+                Map.of(
+                        "tree", tree,
+                        "flatComments", flat,
+                        "totalComments", flat.size()
+                )
+        );
     }
 
     private UUID parseUuid(String value) {

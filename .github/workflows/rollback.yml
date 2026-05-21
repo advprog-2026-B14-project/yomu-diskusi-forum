@@ -19,12 +19,12 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Deploy specified image to Koyeb
-        uses: koyeb/koyeb-action@<FULL_COMMIT_SHA>
+      - name: Install Koyeb CLI
+        uses: koyeb-community/koyeb-actions@v2
         with:
-          api-token: ${{ secrets.KOYEB_API_TOKEN }}
-          app-name: ${{ vars.KOYEB_APP_NAME }}
-          service-name: ${{ vars.KOYEB_SERVICE_NAME }}
-          image: ${{ github.event.inputs.image }}
-          wait: true
-          wait-timeout: 20m
+          api_token: ${{ secrets.KOYEB_API_TOKEN }}
+
+      - name: Rollback to specified image
+        run: |
+          koyeb service update ${{ vars.KOYEB_APP_NAME }}/${{ vars.KOYEB_SERVICE_NAME }} \
+            --docker ${{ github.event.inputs.image }}

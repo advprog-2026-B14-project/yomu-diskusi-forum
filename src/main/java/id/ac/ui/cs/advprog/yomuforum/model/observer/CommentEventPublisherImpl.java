@@ -1,22 +1,26 @@
 package id.ac.ui.cs.advprog.yomuforum.model.observer;
 
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 
-import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
- * Observer Pattern – Concrete Subject.
+ * Observer Pattern – Concrete Subject (Async).
  * Mengelola daftar listener dan mengirim notifikasi ke semua
  * listener yang terdaftar ketika sebuah event terjadi.
  *
- * Spring akan otomatis menginjeksi semua bean yang implements
- * CommentEventListener melalui constructor injection.
+ * Notifikasi dikirim secara ASYNCHRONOUS di thread terpisah
+ * agar tidak memblokir response ke client.
+ *
+ * Menggunakan CopyOnWriteArrayList untuk thread-safety
+ * saat subscribe/unsubscribe bersamaan dengan notifikasi.
  */
 @Component
 public class CommentEventPublisherImpl implements CommentEventPublisher {
 
-    private final List<CommentEventListener> listeners = new ArrayList<>();
+    private final List<CommentEventListener> listeners = new CopyOnWriteArrayList<>();
 
     /**
      * Constructor injection: Spring secara otomatis memasukkan semua bean
@@ -40,6 +44,13 @@ public class CommentEventPublisherImpl implements CommentEventPublisher {
         listeners.remove(listener);
     }
 
+    /**
+     * Mengirim notifikasi ke semua subscriber secara ASYNCHRONOUS.
+     * Method ini berjalan di thread pool "taskExecutor" (lihat AsyncConfig),
+     * sehingga caller (service layer) tidak perlu menunggu semua listener
+     * selesai diproses sebelum mengembalikan response ke client.
+     */
+    @Async("taskExecutor")
     @Override
     public void notifySubscribers(CommentEvent event) {
         for (CommentEventListener listener : listeners) {
@@ -52,3 +63,4 @@ public class CommentEventPublisherImpl implements CommentEventPublisher {
         return listeners.size();
     }
 }
+
