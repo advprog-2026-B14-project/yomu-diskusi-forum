@@ -101,6 +101,8 @@ tasks.register<Test>("functionalTest") {
     description = "Runs functional tests"
     group = "verification"
     useJUnitPlatform()
+    testClassesDirs = sourceSets["test"].output.classesDirs
+    classpath = sourceSets["test"].runtimeClasspath
     filter {
         includeTestsMatching("*FunctionalTest")
     }

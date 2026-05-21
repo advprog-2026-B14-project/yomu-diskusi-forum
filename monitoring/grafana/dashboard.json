@@ -1,5 +1,5 @@
 {
-  "title": "Yomu Forum - JVM Overview",
+  "title": "Yomu Forum - Overview",
   "panels": [
     {
       "type": "graph",
@@ -8,6 +8,54 @@
         {
           "expr": "jvm_memory_used_bytes{area=\"heap\"}",
           "legendFormat": "heap"
+        }
+      ]
+    },
+    {
+      "type": "graph",
+      "title": "HTTP Request Rate (ops/sec)",
+      "targets": [
+        {
+          "expr": "rate(http_server_requests_seconds_count[1m])",
+          "legendFormat": "{{uri}} {{status}}"
+        }
+      ]
+    },
+    {
+      "type": "graph",
+      "title": "HTTP Error Rate (5xx ops/sec)",
+      "targets": [
+        {
+          "expr": "rate(http_server_requests_seconds_count{status=~\"5..\"}[1m])",
+          "legendFormat": "{{uri}} {{status}}"
+        }
+      ]
+    },
+    {
+      "type": "graph",
+      "title": "JVM Threads",
+      "targets": [
+        {
+          "expr": "jvm_threads_live_threads",
+          "legendFormat": "live"
+        },
+        {
+          "expr": "jvm_threads_daemon_threads",
+          "legendFormat": "daemon"
+        }
+      ]
+    },
+    {
+      "type": "graph",
+      "title": "HikariCP Active Connections",
+      "targets": [
+        {
+          "expr": "hikaricp_connections_active",
+          "legendFormat": "Active"
+        },
+        {
+          "expr": "hikaricp_connections_idle",
+          "legendFormat": "Idle"
         }
       ]
     }
