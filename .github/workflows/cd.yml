@@ -68,3 +68,37 @@ jobs:
           koyeb service update ${{ vars.KOYEB_APP_NAME }}/${{ vars.KOYEB_SERVICE_NAME }} \
             --docker ghcr.io/${{ github.repository_owner }}/yomu-forum:${{ github.sha }}
 
+      - name: Wait for deployment to be healthy
+        id: healthcheck
+        run: |
+          echo "Waiting for Koyeb deployment to finish and become healthy..."
+          # Koyeb might take a minute or two to deploy. Poll the health endpoint for up to 3 minutes
+          TIMEOUT=180
+          INTERVAL=10
+          ELAPSED=0
+          
+          while [ $ELAPSED -lt $TIMEOUT ]; do
+            STATUS=$(curl -s -o /dev/null -w "%{http_code}" https://verbal-atalanta-moondiverc-c0bd26af.koyeb.app/actuator/health)
+            if [ "$STATUS" = "200" ]; then
+              echo "Deployment is healthy!"
+              exit 0
+            fi
+            echo "Status $STATUS... waiting"
+            sleep $INTERVAL
+            ELAPSED=$((ELAPSED + INTERVAL))
+          done
+          echo "Deployment failed health check."
+          exit 1
+
+      - name: Automatic Rollback on Failure
+        if: failure()
+        run: |
+          echo "Healthcheck failed. Rolling back to previous commit..."
+          PREV_SHA="${{ github.event.before }}"
+          if [ -z "$PREV_SHA" ] || [ "$PREV_SHA" = "0000000000000000000000000000000000000000" ]; then
+            echo "No previous SHA available for rollback. Please use the manual rollback workflow."
+            exit 1
+          fi
+          koyeb service update ${{ vars.KOYEB_APP_NAME }}/${{ vars.KOYEB_SERVICE_NAME }} \
+            --docker ghcr.io/${{ github.repository_owner }}/yomu-forum:$PREV_SHA
+          echo "Rollback to $PREV_SHA initiated."

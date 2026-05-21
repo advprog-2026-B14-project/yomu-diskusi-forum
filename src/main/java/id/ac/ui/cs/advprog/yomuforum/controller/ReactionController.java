@@ -27,10 +27,18 @@ import java.util.UUID;
 public class ReactionController {
     private final ReactionService reactionService;
 
+    @org.springframework.beans.factory.annotation.Value("${feature.flags.reaction-enabled:true}")
+    private boolean isReactionEnabled;
+
     @PostMapping
-    public ResponseEntity<Reaction> addReaction(
+    public ResponseEntity<Object> addReaction(
             @RequestHeader(value = "X-User-Id", required = false) String userIdHeader,
             @RequestBody ReactionRequest request) {
+        if (!isReactionEnabled) {
+            return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+                    .body("Fitur Reaction sedang dinonaktifkan (Feature Flag)");
+        }
+
         Reaction reaction = new Reaction();
         reaction.setCommentId(parseRequiredUuid(request.getCommentId(), "commentId"));
         String resolvedUserId = resolveUserId(userIdHeader, request.getUserId());
