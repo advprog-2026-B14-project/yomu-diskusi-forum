@@ -1,0 +1,30 @@
+name: Manual Rollback to Previous Image
+
+on:
+  workflow_dispatch:
+    inputs:
+      image:
+        description: "Full image reference to rollback to (ghcr.io/...:tag)"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  rollback:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Deploy specified image to Koyeb
+        uses: koyeb/koyeb-action@<FULL_COMMIT_SHA>
+        with:
+          api-token: ${{ secrets.KOYEB_API_TOKEN }}
+          app-name: ${{ vars.KOYEB_APP_NAME }}
+          service-name: ${{ vars.KOYEB_SERVICE_NAME }}
+          image: ${{ github.event.inputs.image }}
+          wait: true
+          wait-timeout: 20m
