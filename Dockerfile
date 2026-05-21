@@ -20,10 +20,9 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=5 \
 
 ENTRYPOINT ["java", \
   "-XX:+UseContainerSupport", \
-  "-XX:MaxRAMPercentage=65.0", \
-  "-Xmx128m", \
+  "-Xmx96m", \
   "-Xms64m", \
-  "-XX:MaxMetaspaceSize=64m", \
+  "-XX:MaxMetaspaceSize=96m", \
   "-XX:+UseSerialGC", \
   "-XX:CICompilerCount=1", \
   "-XX:+TieredCompilation", \
