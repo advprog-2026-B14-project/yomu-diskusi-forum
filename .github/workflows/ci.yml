@@ -40,7 +40,7 @@ jobs:
         run: ./gradlew runCheckstyle --no-daemon
 
       - name: Run tests and generate JaCoCo report
-        run: ./gradlew clean test jacocoTestReport --no-daemon
+        run: ./gradlew clean test functionalTest jacocoTestReport --no-daemon
 
       - name: Enforce JaCoCo coverage (90% lines)
         run: ./gradlew jacocoTestCoverageVerification --no-daemon
