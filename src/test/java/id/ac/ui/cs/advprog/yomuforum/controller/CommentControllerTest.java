@@ -27,6 +27,8 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.asyncDispatch;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.request;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(CommentController.class)
@@ -418,4 +420,24 @@ class CommentControllerTest {
         assertEquals(VALID_USER_UUID, ReflectionTestUtils.invokeMethod(controller, "resolveUserId", VALID_USER_UUID, "fallback"));
         assertEquals("fallback", ReflectionTestUtils.invokeMethod(controller, "resolveUserId", "", "fallback"));
     }
+
+    @Test
+    void testGetCommentTreeAsync() throws Exception {
+        when(asyncCommentService.getCommentTreeAsync(readingId))
+                .thenReturn(java.util.concurrent.CompletableFuture.completedFuture(List.of()));
+        when(asyncCommentService.getCommentsByReadingIdAsync(readingId))
+                .thenReturn(java.util.concurrent.CompletableFuture.completedFuture(List.of()));
+
+        org.springframework.test.web.servlet.MvcResult mvcResult = mockMvc.perform(get("/api/comments/reading/{readingId}/async-tree", readingId))
+                .andExpect(request().asyncStarted())
+                .andReturn();
+
+        mockMvc.perform(asyncDispatch(mvcResult))
+                .andExpect(status().isOk());
+
+        verify(asyncCommentService, times(1)).getCommentTreeAsync(readingId);
+        verify(asyncCommentService, times(1)).getCommentsByReadingIdAsync(readingId);
+    }
 }
+
+

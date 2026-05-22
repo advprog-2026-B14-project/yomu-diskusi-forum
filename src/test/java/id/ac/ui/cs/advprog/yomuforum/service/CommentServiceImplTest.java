@@ -1,12 +1,12 @@
 package id.ac.ui.cs.advprog.yomuforum.service;
 
 import id.ac.ui.cs.advprog.yomuforum.model.Comment;
-import id.ac.ui.cs.advprog.yomuforum.model.composite.CommentComponent;
+import id.ac.ui.cs.advprog.yomuforum.dto.composite.CommentComponent;
 import id.ac.ui.cs.advprog.yomuforum.exception.CommentNotFoundException;
 import id.ac.ui.cs.advprog.yomuforum.exception.ForbiddenException;
 import id.ac.ui.cs.advprog.yomuforum.exception.InvalidInputException;
-import id.ac.ui.cs.advprog.yomuforum.model.observer.CommentEvent;
-import id.ac.ui.cs.advprog.yomuforum.model.observer.CommentEventPublisher;
+import id.ac.ui.cs.advprog.yomuforum.event.CommentEvent;
+import id.ac.ui.cs.advprog.yomuforum.event.CommentEventPublisher;
 import id.ac.ui.cs.advprog.yomuforum.repository.CommentRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

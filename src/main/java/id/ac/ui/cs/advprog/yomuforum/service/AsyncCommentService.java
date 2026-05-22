@@ -2,7 +2,7 @@ package id.ac.ui.cs.advprog.yomuforum.service;
 
 import id.ac.ui.cs.advprog.yomuforum.model.Comment;
 import id.ac.ui.cs.advprog.yomuforum.model.Reaction;
-import id.ac.ui.cs.advprog.yomuforum.model.composite.CommentComponent;
+import id.ac.ui.cs.advprog.yomuforum.dto.composite.CommentComponent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Async;

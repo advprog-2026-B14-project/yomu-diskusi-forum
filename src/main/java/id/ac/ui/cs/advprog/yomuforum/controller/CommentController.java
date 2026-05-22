@@ -3,7 +3,7 @@ package id.ac.ui.cs.advprog.yomuforum.controller;
 import id.ac.ui.cs.advprog.yomuforum.dto.CommentRequest;
 import id.ac.ui.cs.advprog.yomuforum.exception.InvalidInputException;
 import id.ac.ui.cs.advprog.yomuforum.model.Comment;
-import id.ac.ui.cs.advprog.yomuforum.model.composite.CommentComponent;
+import id.ac.ui.cs.advprog.yomuforum.dto.composite.CommentComponent;
 import id.ac.ui.cs.advprog.yomuforum.service.CommentService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;

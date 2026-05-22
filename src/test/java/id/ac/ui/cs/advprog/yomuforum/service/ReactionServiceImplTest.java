@@ -2,10 +2,10 @@ package id.ac.ui.cs.advprog.yomuforum.service;
 
 import id.ac.ui.cs.advprog.yomuforum.model.Reaction;
 import id.ac.ui.cs.advprog.yomuforum.model.ReactionType;
-import id.ac.ui.cs.advprog.yomuforum.model.observer.CommentEvent;
-import id.ac.ui.cs.advprog.yomuforum.model.observer.CommentEventPublisher;
-import id.ac.ui.cs.advprog.yomuforum.model.strategy.ReactionStrategy;
-import id.ac.ui.cs.advprog.yomuforum.model.strategy.ReactionStrategyContext;
+import id.ac.ui.cs.advprog.yomuforum.event.CommentEvent;
+import id.ac.ui.cs.advprog.yomuforum.event.CommentEventPublisher;
+import id.ac.ui.cs.advprog.yomuforum.service.strategy.ReactionStrategy;
+import id.ac.ui.cs.advprog.yomuforum.service.strategy.ReactionStrategyContext;
 import id.ac.ui.cs.advprog.yomuforum.repository.ReactionRepository;
 import id.ac.ui.cs.advprog.yomuforum.exception.ForbiddenException;
 import id.ac.ui.cs.advprog.yomuforum.exception.InvalidInputException;

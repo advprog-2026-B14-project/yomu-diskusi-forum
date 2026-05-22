@@ -113,6 +113,11 @@ tasks.bootJar {
 }
 
 tasks.jacocoTestReport {
+    classDirectories.setFrom(files(classDirectories.files.map {
+        fileTree(it).apply {
+            exclude("id/ac/ui/cs/advprog/yomuforum/config/**")
+        }
+    }))
     dependsOn(tasks.test)
     
     reports {
@@ -161,6 +166,7 @@ sonar {
         property("sonar.coverage.jacoco.xmlReportPaths", "build/reports/jacoco/test/jacocoTestReport.xml")
     }
 }
+
 
 
 
