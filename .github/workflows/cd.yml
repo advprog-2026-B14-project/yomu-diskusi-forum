@@ -30,6 +30,15 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Set lowercase repository owner
+        run: echo "REPO_OWNER=$(echo ${{ github.repository_owner }} | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
+
+      - name: Install Koyeb CLI
+        id: install_koyeb
+        uses: koyeb-community/koyeb-actions@v2
+        with:
+          api_token: ${{ secrets.KOYEB_API_TOKEN }}
+
       - name: Set up JDK 21
         uses: actions/setup-java@v4
         with:
@@ -55,18 +64,13 @@ jobs:
           file: Dockerfile
           push: true
           tags: |
-            ghcr.io/${{ github.repository_owner }}/yomu-forum:${{ github.sha }}
-            ghcr.io/${{ github.repository_owner }}/yomu-forum:latest
-
-      - name: Install Koyeb CLI
-        uses: koyeb-community/koyeb-actions@v2
-        with:
-          api_token: ${{ secrets.KOYEB_API_TOKEN }}
+            ghcr.io/${{ env.REPO_OWNER }}/yomu-forum:${{ github.sha }}
+            ghcr.io/${{ env.REPO_OWNER }}/yomu-forum:latest
 
       - name: Deploy to Koyeb
         run: |
           koyeb service update ${{ vars.KOYEB_APP_NAME }}/${{ vars.KOYEB_SERVICE_NAME }} \
-            --docker ghcr.io/${{ github.repository_owner }}/yomu-forum:${{ github.sha }}
+            --docker ghcr.io/${{ env.REPO_OWNER }}/yomu-forum:${{ github.sha }}
 
       - name: Wait for deployment to be healthy
         id: healthcheck
@@ -100,5 +104,5 @@ jobs:
             exit 1
           fi
           koyeb service update ${{ vars.KOYEB_APP_NAME }}/${{ vars.KOYEB_SERVICE_NAME }} \
-            --docker ghcr.io/${{ github.repository_owner }}/yomu-forum:$PREV_SHA
+            --docker ghcr.io/${{ env.REPO_OWNER }}/yomu-forum:$PREV_SHA
           echo "Rollback to $PREV_SHA initiated."
