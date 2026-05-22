@@ -5,12 +5,6 @@ import id.ac.ui.cs.advprog.yomuforum.model.Comment;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Composite Pattern – Composite.
- * Merepresentasikan komentar yang memiliki balasan (children).
- * Mampu menampung child CommentComponent secara rekursif,
- * membentuk tree structure untuk nested comments.
- */
 public class CommentComposite extends AbstractCommentComponent {
 
     public CommentComposite(Comment comment) {
