@@ -47,3 +47,5 @@ out/
 /bin/
 Yomu_Diskusi_Forum_API.postman_collection.json
 scripts/pin-actions.sh
+
+/k6/k6.exe
