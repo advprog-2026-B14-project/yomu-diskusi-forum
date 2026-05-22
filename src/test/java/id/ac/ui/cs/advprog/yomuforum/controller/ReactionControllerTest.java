@@ -206,7 +206,9 @@ class ReactionControllerTest {
 
     @Test
     void testAddReactionWhenDisabled() throws Exception {
-        ReflectionTestUtils.setField(mockMvc.getDispatcherServlet().getWebApplicationContext().getBean(ReactionController.class), "isReactionEnabled", false);
+        ReactionController controller = mockMvc.getDispatcherServlet()
+                .getWebApplicationContext().getBean(ReactionController.class);
+        ReflectionTestUtils.setField(controller, "isReactionEnabled", false);
         try {
             ReactionRequest request = new ReactionRequest();
             request.setCommentId(commentId.toString());
@@ -219,7 +221,9 @@ class ReactionControllerTest {
                             .content(objectMapper.writeValueAsString(request)))
                     .andExpect(status().isServiceUnavailable());
         } finally {
-            ReflectionTestUtils.setField(mockMvc.getDispatcherServlet().getWebApplicationContext().getBean(ReactionController.class), "isReactionEnabled", true);
+            controller = mockMvc.getDispatcherServlet()
+                    .getWebApplicationContext().getBean(ReactionController.class);
+            ReflectionTestUtils.setField(controller, "isReactionEnabled", true);
         }
     }
 }
