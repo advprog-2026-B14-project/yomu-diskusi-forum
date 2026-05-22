@@ -203,4 +203,28 @@ class ReactionControllerTest {
         assertEquals(TEST_USER, ReflectionTestUtils.invokeMethod(controller, "resolveUserId", TEST_USER, "fallback"));
         assertEquals("fallback", ReflectionTestUtils.invokeMethod(controller, "resolveUserId", "", "fallback"));
     }
+
+    @Test
+    void testAddReactionWhenDisabled() throws Exception {
+        ReactionController controller = mockMvc.getDispatcherServlet()
+                .getWebApplicationContext().getBean(ReactionController.class);
+        ReflectionTestUtils.setField(controller, "isReactionEnabled", false);
+        try {
+            ReactionRequest request = new ReactionRequest();
+            request.setCommentId(commentId.toString());
+            request.setUserId(TEST_USER);
+            request.setReactionType("UPVOTE");
+
+            mockMvc.perform(post("/api/reactions")
+                            .header("X-User-Id", TEST_USER)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(request)))
+                    .andExpect(status().isServiceUnavailable());
+        } finally {
+            controller = mockMvc.getDispatcherServlet()
+                    .getWebApplicationContext().getBean(ReactionController.class);
+            ReflectionTestUtils.setField(controller, "isReactionEnabled", true);
+        }
+    }
 }
+

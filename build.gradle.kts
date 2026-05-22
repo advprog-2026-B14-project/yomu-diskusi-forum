@@ -63,6 +63,7 @@ dependencies {
     implementation("io.micrometer:micrometer-registry-prometheus")
     implementation("org.springframework.boot:spring-boot-starter-data-jpa")
     implementation("org.springframework.boot:spring-boot-starter-thymeleaf")
+    implementation("io.sentry:sentry-spring-boot-starter-jakarta:7.3.0")
     implementation("org.postgresql:postgresql")
     runtimeOnly("com.h2database:h2")
     implementation("jakarta.validation:jakarta.validation-api:$jakartaValidationVersion")
@@ -113,6 +114,11 @@ tasks.bootJar {
 }
 
 tasks.jacocoTestReport {
+    classDirectories.setFrom(files(classDirectories.files.map {
+        fileTree(it).apply {
+            exclude("id/ac/ui/cs/advprog/yomuforum/config/**")
+        }
+    }))
     dependsOn(tasks.test)
     
     reports {
@@ -161,6 +167,7 @@ sonar {
         property("sonar.coverage.jacoco.xmlReportPaths", "build/reports/jacoco/test/jacocoTestReport.xml")
     }
 }
+
 
 
 

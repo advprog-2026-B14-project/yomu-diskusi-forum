@@ -13,6 +13,20 @@
     },
     {
       "type": "graph",
+      "title": "CPU Usage (%)",
+      "targets": [
+        {
+          "expr": "process_cpu_usage{job=\"yomu-spring-boot-koyeb\"} * 100",
+          "legendFormat": "process"
+        },
+        {
+          "expr": "system_cpu_usage{job=\"yomu-spring-boot-koyeb\"} * 100",
+          "legendFormat": "system"
+        }
+      ]
+    },
+    {
+      "type": "graph",
       "title": "HTTP Request Rate (ops/sec)",
       "targets": [
         {
@@ -84,7 +98,7 @@
       "title": "HTTP Response Latency (P95)",
       "targets": [
         {
-          "expr": "histogram_quantile(0.95, sum(rate(http_server_requests_seconds_bucket[1m])) by (le))",
+          "expr": "histogram_quantile(0.95, sum(rate(http_server_requests_seconds_bucket{job=\"yomu-spring-boot-koyeb\"}[1m])) by (le))",
           "legendFormat": "P95 Latency"
         }
       ]

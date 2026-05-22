@@ -1,9 +1,9 @@
 package id.ac.ui.cs.advprog.yomuforum.service;
 
 import id.ac.ui.cs.advprog.yomuforum.model.Comment;
-import id.ac.ui.cs.advprog.yomuforum.model.composite.CommentComponent;
-import id.ac.ui.cs.advprog.yomuforum.model.composite.CommentComposite;
-import id.ac.ui.cs.advprog.yomuforum.model.composite.CommentLeaf;
+import id.ac.ui.cs.advprog.yomuforum.dto.composite.CommentComponent;
+import id.ac.ui.cs.advprog.yomuforum.dto.composite.CommentComposite;
+import id.ac.ui.cs.advprog.yomuforum.dto.composite.CommentLeaf;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.util.ReflectionTestUtils;
