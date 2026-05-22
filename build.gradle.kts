@@ -63,6 +63,7 @@ dependencies {
     implementation("io.micrometer:micrometer-registry-prometheus")
     implementation("org.springframework.boot:spring-boot-starter-data-jpa")
     implementation("org.springframework.boot:spring-boot-starter-thymeleaf")
+    implementation("io.sentry:sentry-spring-boot-starter-jakarta:7.3.0")
     implementation("org.postgresql:postgresql")
     runtimeOnly("com.h2database:h2")
     implementation("jakarta.validation:jakarta.validation-api:$jakartaValidationVersion")
