@@ -3,9 +3,7 @@ package id.ac.ui.cs.advprog.yomuforum.dto.composite;
 import id.ac.ui.cs.advprog.yomuforum.model.Comment;
 
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
-import java.util.UUID;
 
 /**
  * Composite Pattern – Composite.
