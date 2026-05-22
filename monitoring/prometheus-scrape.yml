@@ -1,8 +1,9 @@
 scrape_configs:
-  - job_name: "yomu_forum"
+  - job_name: "yomu-spring-boot-koyeb"
     metrics_path: /actuator/prometheus
     scheme: https
     static_configs:
       - targets: ["verbal-atalanta-moondiverc-c0bd26af.koyeb.app"]
         labels:
           environment: production
+          application: yomu-diskusi-forum
