@@ -7,15 +7,6 @@ import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
 
-/**
- * Strategy Pattern – Context.
- * Menentukan strategy mana yang digunakan berdasarkan ReactionType.
- * Mengumpulkan semua ReactionStrategy beans melalui constructor injection
- * dan memetakan ke masing-masing ReactionType.
- *
- * Prinsip Open-Closed: Menambah jenis reaksi baru cukup membuat class
- * ReactionStrategy baru tanpa mengubah context ini.
- */
 @Component
 public class ReactionStrategyContext {
 
@@ -24,7 +15,6 @@ public class ReactionStrategyContext {
     public ReactionStrategyContext(List<ReactionStrategy> strategies) {
         for (ReactionStrategy strategy : strategies) {
             if (strategy instanceof EmojiStrategy) {
-                // Register emoji strategy for all emoji types
                 for (ReactionType type : ReactionType.values()) {
                     if (EmojiStrategy.isEmojiType(type)) {
                         strategyMap.put(type, strategy);
@@ -36,13 +26,6 @@ public class ReactionStrategyContext {
         }
     }
 
-    /**
-     * Mengembalikan strategy yang sesuai untuk ReactionType yang diberikan.
-     *
-     * @param type jenis reaksi
-     * @return strategy yang menangani jenis reaksi tersebut
-     * @throws IllegalArgumentException jika tidak ada strategy untuk type tersebut
-     */
     public ReactionStrategy getStrategy(ReactionType type) {
         ReactionStrategy strategy = strategyMap.get(type);
         if (strategy == null) {

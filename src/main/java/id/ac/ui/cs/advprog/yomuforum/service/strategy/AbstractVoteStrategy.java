@@ -11,7 +11,6 @@ public abstract class AbstractVoteStrategy implements ReactionStrategy {
 
     @Override
     public Reaction apply(Reaction reaction, ReactionRepository repository) {
-        // Remove any existing vote (upvote or downvote) from this user on this comment
         repository.findByCommentIdAndUserId(reaction.getCommentId(), reaction.getUserId())
                 .ifPresent(existing -> {
                     if (existing.getReactionType() == ReactionType.UPVOTE

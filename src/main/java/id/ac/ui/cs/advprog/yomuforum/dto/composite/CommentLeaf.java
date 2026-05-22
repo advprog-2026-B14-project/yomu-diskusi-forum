@@ -5,12 +5,6 @@ import id.ac.ui.cs.advprog.yomuforum.model.Comment;
 import java.util.Collections;
 import java.util.List;
 
-/**
- * Composite Pattern – Leaf.
- * Merepresentasikan komentar yang tidak memiliki balasan (child).
- * addChild() dan removeChild() melempar UnsupportedOperationException
- * karena leaf tidak boleh memiliki anak.
- */
 public class CommentLeaf extends AbstractCommentComponent {
 
     public CommentLeaf(Comment comment) {

@@ -26,11 +26,9 @@ public class ReactionServiceImpl implements ReactionService {
 
     @Override
     public Reaction addReaction(Reaction reaction) {
-        // Strategy Pattern: delegate to the appropriate strategy based on reaction type
         ReactionStrategy strategy = reactionStrategyContext.getStrategy(reaction.getReactionType());
         Reaction saved = strategy.apply(reaction, reactionRepository);
 
-        // Observer Pattern: notify subscribers about new reaction
         commentEventPublisher.notifySubscribers(
                 new CommentEvent(EventType.REACTION_ADDED, saved.getCommentId(), saved.getUserId(),
                         "Reaction added: " + saved.getReactionType()));
@@ -53,7 +51,6 @@ public class ReactionServiceImpl implements ReactionService {
 
         reactionRepository.deleteById(id);
 
-        // Observer Pattern: notify subscribers about reaction removal
         commentEventPublisher.notifySubscribers(
                 new CommentEvent(EventType.REACTION_REMOVED, existing.getCommentId(), actorUserId,
                         "Reaction removed: " + existing.getReactionType()));
