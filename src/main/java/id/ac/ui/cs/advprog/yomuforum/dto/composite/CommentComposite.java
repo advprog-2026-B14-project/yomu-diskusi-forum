@@ -13,23 +13,13 @@ import java.util.UUID;
  * Mampu menampung child CommentComponent secara rekursif,
  * membentuk tree structure untuk nested comments.
  */
-public class CommentComposite implements CommentComponent {
-
-    private final Comment comment;
-    private final List<CommentComponent> children = new ArrayList<>();
+public class CommentComposite extends AbstractCommentComponent {
 
     public CommentComposite(Comment comment) {
-        this.comment = comment;
+        super(comment);
     }
 
-    @Override public UUID getId()              { return comment.getId(); }
-    @Override public UUID getUserId()           { return comment.getUserId(); }
-    @Override public UUID getReadingId()        { return comment.getReadingId(); }
-    @Override public UUID getParentCommentId()  { return comment.getParentCommentId(); }
-    @Override public String getContent()        { return comment.getContent(); }
-    @Override public Date getCreatedAt()        { return comment.getCreatedAt(); }
-    @Override public Date getUpdatedAt()        { return comment.getUpdatedAt(); }
-
+    private final List<CommentComponent> children = new ArrayList<>();
     @Override
     public List<CommentComponent> getChildren() {
         return children;

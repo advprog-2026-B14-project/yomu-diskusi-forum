@@ -16,28 +16,14 @@ import java.util.UUID;
  * - Menyimpan reaksi baru
  */
 @Component
-public class UpvoteStrategy implements ReactionStrategy {
+public class UpvoteStrategy extends AbstractVoteStrategy {
 
     @Override
     public ReactionType getReactionType() {
         return ReactionType.UPVOTE;
     }
 
-    @Override
-    public Reaction apply(Reaction reaction, ReactionRepository repository) {
-        // Remove any existing vote (upvote or downvote) from this user on this comment
-        repository.findByCommentIdAndUserId(reaction.getCommentId(), reaction.getUserId())
-                .ifPresent(existing -> {
-                    if (existing.getReactionType() == ReactionType.UPVOTE
-                            || existing.getReactionType() == ReactionType.DOWNVOTE) {
-                        repository.delete(existing);
-                    }
-                });
 
-        reaction.setId(UUID.randomUUID());
-        reaction.setCreatedAt(new Date());
-        return repository.save(reaction);
-    }
 
     @Override
     public int getScoreValue() {

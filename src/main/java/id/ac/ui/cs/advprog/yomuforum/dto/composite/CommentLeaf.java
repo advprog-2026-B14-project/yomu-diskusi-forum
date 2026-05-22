@@ -13,21 +13,11 @@ import java.util.UUID;
  * addChild() dan removeChild() melempar UnsupportedOperationException
  * karena leaf tidak boleh memiliki anak.
  */
-public class CommentLeaf implements CommentComponent {
-
-    private final Comment comment;
+public class CommentLeaf extends AbstractCommentComponent {
 
     public CommentLeaf(Comment comment) {
-        this.comment = comment;
+        super(comment);
     }
-
-    @Override public UUID getId()              { return comment.getId(); }
-    @Override public UUID getUserId()           { return comment.getUserId(); }
-    @Override public UUID getReadingId()        { return comment.getReadingId(); }
-    @Override public UUID getParentCommentId()  { return comment.getParentCommentId(); }
-    @Override public String getContent()        { return comment.getContent(); }
-    @Override public Date getCreatedAt()        { return comment.getCreatedAt(); }
-    @Override public Date getUpdatedAt()        { return comment.getUpdatedAt(); }
 
     @Override
     public List<CommentComponent> getChildren() {
