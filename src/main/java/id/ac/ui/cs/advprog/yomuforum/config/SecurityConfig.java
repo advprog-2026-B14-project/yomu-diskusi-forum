@@ -74,14 +74,11 @@ public class SecurityConfig {
     }
 
     private boolean isProductionProfile() {
-        try {
-            String[] active = env.getActiveProfiles();
-            for (String p : active) {
-                if (p != null && (p.equalsIgnoreCase("prod") || p.equalsIgnoreCase("production"))) {
-                    return true;
-                }
+        String[] active = env.getActiveProfiles();
+        for (String p : active) {
+            if (p != null && (p.equalsIgnoreCase("prod") || p.equalsIgnoreCase("production"))) {
+                return true;
             }
-        } catch (Exception e) {
         }
         return false;
     }
@@ -102,7 +99,9 @@ public class SecurityConfig {
 
         if (allowedOrigins == null || allowedOrigins.isBlank()) {
             if (isProd) {
-                logger.warn("No CORS allowed origins configured in production; enabling safe wildcard origin pattern (credentials disabled). Please set APP_CORS_ALLOWED_ORIGINS in the environment.");
+                logger.warn("No CORS allowed origins configured in production; " +
+                            "enabling safe wildcard origin pattern (credentials disabled). " +
+                            "Please set APP_CORS_ALLOWED_ORIGINS in the environment.");
                 originPatterns.add("*");
             } else {
                 originPatterns.add("http://localhost:*");

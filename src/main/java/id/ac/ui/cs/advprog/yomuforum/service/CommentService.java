@@ -16,6 +16,5 @@ public interface CommentService {
     List<Comment> getRepliesByParentId(UUID parentCommentId);
     List<Comment> getCommentsByUserId(UUID userId);
 
-    /** Composite Pattern: Returns nested comment tree for a reading. */
     List<CommentComponent> getCommentTreeByReadingId(UUID readingId);
 }

@@ -6,13 +6,21 @@ import id.ac.ui.cs.advprog.yomuforum.dto.composite.CommentComposite;
 import id.ac.ui.cs.advprog.yomuforum.dto.composite.CommentLeaf;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
+import id.ac.ui.cs.advprog.yomuforum.repository.ReactionRepository;
 
 import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+@ExtendWith(MockitoExtension.class)
 class CommentTreeBuilderTest {
+
+    @Mock
+    private ReactionRepository reactionRepository;
 
     private CommentTreeBuilder treeBuilder;
     private UUID readingId;
@@ -108,13 +116,13 @@ class CommentTreeBuilderTest {
         List<CommentComponent> result = treeBuilder.buildTree(List.of(root, child, grandchild));
 
         assertEquals(1, result.size());
-        assertFalse(result.get(0).isLeaf()); // Root has children
+        assertFalse(result.get(0).isLeaf()); 
 
         CommentComponent childNode = result.get(0).getChildren().get(0);
-        assertFalse(childNode.isLeaf()); // Child has grandchild
+        assertFalse(childNode.isLeaf()); 
 
         CommentComponent grandchildNode = childNode.getChildren().get(0);
-        assertTrue(grandchildNode.isLeaf()); // Grandchild is leaf
+        assertTrue(grandchildNode.isLeaf()); 
         assertEquals("Grandchild", grandchildNode.getContent());
     }
 
@@ -139,7 +147,6 @@ class CommentTreeBuilderTest {
 
     @Test
     void testBuildTreeWithOrphanComment() {
-        // A comment whose parent isn't in the list → treated as root
         UUID orphanId = UUID.randomUUID();
         UUID missingParentId = UUID.randomUUID();
 
@@ -192,5 +199,17 @@ class CommentTreeBuilderTest {
         assertEquals(1, result.getChildren().size());
         assertTrue(result.getChildren().get(0).isLeaf());
         assertEquals("Child", result.getChildren().get(0).getContent());
+    }
+
+    @Test
+    void testUpvotesAndDownvotes() {
+        Comment root = createComment(UUID.randomUUID(), null, "Root");
+        CommentLeaf leaf = new CommentLeaf(root);
+
+        leaf.setUpvotes(10L);
+        leaf.setDownvotes(5L);
+
+        assertEquals(10L, leaf.getUpvotes());
+        assertEquals(5L, leaf.getDownvotes());
     }
 }

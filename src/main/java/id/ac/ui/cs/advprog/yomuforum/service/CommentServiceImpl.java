@@ -39,7 +39,6 @@ public class CommentServiceImpl implements CommentService {
         comment.setUpdatedAt(new Date());
         Comment saved = commentRepository.save(comment);
 
-        // Observer Pattern: notify subscribers about new comment
         commentEventPublisher.notifySubscribers(
                 new CommentEvent(EventType.COMMENT_CREATED, saved.getId(), saved.getUserId(),
                         "Comment created on reading " + saved.getReadingId()));
@@ -68,7 +67,6 @@ public class CommentServiceImpl implements CommentService {
         existingComment.setUpdatedAt(new Date());
         Comment saved = commentRepository.save(existingComment);
 
-        // Observer Pattern: notify subscribers about comment update
         commentEventPublisher.notifySubscribers(
                 new CommentEvent(EventType.COMMENT_UPDATED, saved.getId(), actorUserId,
                         "Comment updated"));
@@ -91,7 +89,6 @@ public class CommentServiceImpl implements CommentService {
 
         commentRepository.deleteById(id);
 
-        // Observer Pattern: notify subscribers about comment deletion
         commentEventPublisher.notifySubscribers(
                 new CommentEvent(EventType.COMMENT_DELETED, id, actorUserId,
                         "Comment deleted"));
@@ -123,10 +120,6 @@ public class CommentServiceImpl implements CommentService {
         return commentRepository.findByUserId(userId);
     }
 
-    /**
-     * Composite Pattern: Builds a nested comment tree for a given reading.
-     * Uses CommentTreeBuilder to convert flat list into tree structure.
-     */
     @Override
     public List<CommentComponent> getCommentTreeByReadingId(UUID readingId) {
         List<Comment> flatComments = commentRepository.findByReadingId(readingId);

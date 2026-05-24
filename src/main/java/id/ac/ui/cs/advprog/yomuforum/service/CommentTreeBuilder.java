@@ -15,16 +15,6 @@ import java.util.Set;
 import java.util.HashSet;
 import java.util.Collections;
 
-/**
- * Utility service yang membangun tree (pohon) dari flat list komentar.
- * Menggunakan Composite Pattern untuk membentuk struktur parent-child.
- *
- * Algoritma:
- * 1. Buat CommentComposite untuk setiap komentar (assume semua bisa punya anak)
- * 2. Link setiap anak ke parent-nya berdasarkan parentCommentId
- * 3. Komentar yang tidak punya anak diubah menjadi CommentLeaf
- * 4. Return root-level comments (yang parentCommentId == null)
- */
 @Component
 public class CommentTreeBuilder {
 
@@ -33,13 +23,11 @@ public class CommentTreeBuilder {
             return Collections.emptyList();
         }
 
-        // Phase 1: Create a composite node for every comment
         Map<UUID, CommentComposite> nodeMap = new LinkedHashMap<>();
         for (Comment comment : flatComments) {
             nodeMap.put(comment.getId(), new CommentComposite(comment));
         }
 
-        // Phase 2: Link children to parents
         List<CommentComposite> roots = new ArrayList<>();
         Set<UUID> parentsWithChildren = new HashSet<>();
 
@@ -48,17 +36,14 @@ public class CommentTreeBuilder {
             CommentComposite node = nodeMap.get(comment.getId());
 
             if (parentId == null || !nodeMap.containsKey(parentId)) {
-                // Root-level comment
                 roots.add(node);
             } else {
-                // Attach to parent
                 CommentComposite parent = nodeMap.get(parentId);
                 parent.addChild(node);
                 parentsWithChildren.add(parentId);
             }
         }
 
-        // Phase 3: Convert childless composites to leaves (for correct isLeaf() behavior)
         List<CommentComponent> result = new ArrayList<>();
         for (CommentComposite root : roots) {
             result.add(convertToLeafIfNeeded(root, parentsWithChildren));
@@ -68,11 +53,9 @@ public class CommentTreeBuilder {
 
     private CommentComponent convertToLeafIfNeeded(CommentComposite composite, Set<UUID> parentsWithChildren) {
         if (!parentsWithChildren.contains(composite.getId())) {
-            // This node has no children → convert to leaf
             return new CommentLeaf(extractComment(composite));
         }
 
-        // Recursively process children
         List<CommentComponent> processedChildren = new ArrayList<>();
         for (CommentComponent child : composite.getChildren()) {
             if (child instanceof CommentComposite childComposite) {
@@ -82,7 +65,6 @@ public class CommentTreeBuilder {
             }
         }
 
-        // Rebuild composite with processed children
         CommentComposite newComposite = new CommentComposite(extractComment(composite));
         for (CommentComponent processedChild : processedChildren) {
             newComposite.addChild(processedChild);
@@ -90,9 +72,6 @@ public class CommentTreeBuilder {
         return newComposite;
     }
 
-    /**
-     * Helper to reconstruct a Comment entity from a CommentComponent.
-     */
     private Comment extractComment(CommentComponent component) {
         Comment comment = new Comment();
         comment.setId(component.getId());
