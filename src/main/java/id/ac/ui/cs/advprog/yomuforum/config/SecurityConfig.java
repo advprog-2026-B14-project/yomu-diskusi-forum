@@ -35,7 +35,7 @@ public class SecurityConfig {
     }
 
     @Bean
-    @SuppressWarnings("java:S4502") // Safe because this is a stateless REST API using tokens, not session cookies
+    @SuppressWarnings("java:S4502") 
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
                 .csrf(csrf -> csrf.disable())
@@ -82,7 +82,6 @@ public class SecurityConfig {
                 }
             }
         } catch (Exception e) {
-            // ignore
         }
         return false;
     }
@@ -103,7 +102,8 @@ public class SecurityConfig {
 
         if (allowedOrigins == null || allowedOrigins.isBlank()) {
             if (isProd) {
-                logger.warn("No CORS allowed origins configured in production; CORS will be disabled.");
+                logger.warn("No CORS allowed origins configured in production; enabling safe wildcard origin pattern (credentials disabled). Please set APP_CORS_ALLOWED_ORIGINS in the environment.");
+                originPatterns.add("*");
             } else {
                 originPatterns.add("http://localhost:*");
             }
