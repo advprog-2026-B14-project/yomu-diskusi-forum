@@ -21,6 +21,10 @@ public class AsyncCommentService {
     private final CommentService commentService;
     private final ReactionService reactionService;
 
+    @org.springframework.beans.factory.annotation.Autowired
+    @org.springframework.context.annotation.Lazy
+    private AsyncCommentService self;
+
     @Async("taskExecutor")
     public CompletableFuture<List<Comment>> getCommentsByReadingIdAsync(UUID readingId) {
         log.debug("Async fetching comments for reading {} on thread {}",
@@ -52,9 +56,9 @@ public class AsyncCommentService {
                 readingId, commentId, Thread.currentThread().getName());
 
         CompletableFuture<List<Comment>> commentsFuture =
-                getCommentsByReadingIdAsync(readingId);
+                self.getCommentsByReadingIdAsync(readingId);
         CompletableFuture<List<Reaction>> reactionsFuture =
-                getReactionsByCommentIdAsync(commentId);
+                self.getReactionsByCommentIdAsync(commentId);
 
         return commentsFuture.thenCombine(reactionsFuture, (comments, reactions) -> {
             log.info("Parallel fetch complete: {} comments, {} reactions",

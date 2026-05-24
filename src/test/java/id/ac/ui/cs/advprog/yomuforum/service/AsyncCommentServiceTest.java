@@ -49,6 +49,8 @@ class AsyncCommentServiceTest {
         reaction = new Reaction();
         reaction.setId(UUID.randomUUID());
         reaction.setCommentId(commentId);
+
+        org.springframework.test.util.ReflectionTestUtils.setField(asyncCommentService, "self", asyncCommentService);
     }
 
     @Test

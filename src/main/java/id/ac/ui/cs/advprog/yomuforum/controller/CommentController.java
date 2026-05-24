@@ -1,7 +1,6 @@
 package id.ac.ui.cs.advprog.yomuforum.controller;
 
 import id.ac.ui.cs.advprog.yomuforum.dto.CommentRequest;
-import id.ac.ui.cs.advprog.yomuforum.exception.InvalidInputException;
 import id.ac.ui.cs.advprog.yomuforum.model.Comment;
 import id.ac.ui.cs.advprog.yomuforum.dto.composite.CommentComponent;
 import id.ac.ui.cs.advprog.yomuforum.service.CommentService;
@@ -26,6 +25,8 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
+import id.ac.ui.cs.advprog.yomuforum.util.ControllerUtils;
+
 @RestController
 @RequestMapping("/api/comments")
 @RequiredArgsConstructor
@@ -40,10 +41,10 @@ public class CommentController {
             @RequestBody CommentRequest request) {
         Comment comment = new Comment();
         comment.setContent(request.getContent());
-        String resolvedUserId = resolveUserId(userIdHeader, request.getUserId());
-        comment.setUserId(parseRequiredUuid(resolvedUserId, USER_ID));
-        comment.setReadingId(parseRequiredUuid(request.getReadingId(), "readingId"));
-        comment.setParentCommentId(parseUuid(request.getParentCommentId()));
+        String resolvedUserId = ControllerUtils.resolveUserId(userIdHeader, request.getUserId());
+        comment.setUserId(ControllerUtils.parseRequiredUuid(resolvedUserId, USER_ID));
+        comment.setReadingId(ControllerUtils.parseRequiredUuid(request.getReadingId(), "readingId"));
+        comment.setParentCommentId(ControllerUtils.parseUuid(request.getParentCommentId()));
 
         Comment createdComment = commentService.createComment(comment);
         return new ResponseEntity<>(createdComment, HttpStatus.CREATED);
@@ -57,10 +58,10 @@ public class CommentController {
             @RequestBody CommentRequest requestBody) {
         Comment comment = new Comment();
         comment.setContent(requestBody.getContent());
-        String resolvedUserId = resolveUserId(userIdHeader, requestBody.getUserId());
+        String resolvedUserId = ControllerUtils.resolveUserId(userIdHeader, requestBody.getUserId());
 
         Comment updatedComment = commentService.updateComment(
-            id, comment, parseRequiredUuid(resolvedUserId, USER_ID), isAdmin(userRole));
+            id, comment, ControllerUtils.parseRequiredUuid(resolvedUserId, USER_ID), ControllerUtils.isAdmin(userRole));
         return ResponseEntity.ok(updatedComment);
     }
 
@@ -70,9 +71,9 @@ public class CommentController {
             @RequestHeader(value = "X-User-Id", required = false) String userIdHeader,
             @RequestHeader(value = "X-User-Role", required = false) String userRole,
             @RequestParam(value = USER_ID, required = false) String userIdParam) {
-        String resolvedUserId = resolveUserId(userIdHeader, userIdParam);
+        String resolvedUserId = ControllerUtils.resolveUserId(userIdHeader, userIdParam);
         commentService.deleteComment(
-                id, parseRequiredUuid(resolvedUserId, USER_ID), isAdmin(userRole));
+                id, ControllerUtils.parseRequiredUuid(resolvedUserId, USER_ID), ControllerUtils.isAdmin(userRole));
         return ResponseEntity.noContent().build();
     }
 
@@ -127,34 +128,5 @@ public class CommentController {
                         "totalComments", flat.size()
                 )
         );
-    }
-
-    private UUID parseUuid(String value) {
-        if (value == null || value.isBlank()) {
-            return null;
-        }
-        try {
-            return UUID.fromString(value);
-        } catch (IllegalArgumentException ex) {
-            throw new InvalidInputException("Invalid UUID format: " + value);
-        }
-    }
-
-    private UUID parseRequiredUuid(String value, String fieldName) {
-        if (value == null || value.isBlank()) {
-            throw new InvalidInputException(fieldName + " is required");
-        }
-        return parseUuid(value);
-    }
-
-    private boolean isAdmin(String userRole) {
-        return userRole != null && userRole.equalsIgnoreCase("ADMIN");
-    }
-
-    private String resolveUserId(String headerValue, String bodyValue) {
-        if (headerValue != null && !headerValue.isBlank()) {
-            return headerValue;
-        }
-        return bodyValue;
     }
 }
