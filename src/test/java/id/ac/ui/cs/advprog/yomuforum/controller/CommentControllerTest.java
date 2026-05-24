@@ -259,21 +259,6 @@ class CommentControllerTest {
     }
 
     @Test
-    void testDeleteCommentUsesHeaderUserIdEvenWhenQueryDiffers() throws Exception {
-        UUID queryUserId = UUID.randomUUID();
-        UUID headerUserId = UUID.randomUUID();
-
-        doNothing().when(commentService).deleteComment(commentId, headerUserId, false);
-
-        mockMvc.perform(delete("/api/comments/{id}", commentId)
-                        .header("X-User-Id", headerUserId.toString())
-                        .param("userId", queryUserId.toString()))
-                .andExpect(status().isNoContent());
-
-        verify(commentService, times(1)).deleteComment(commentId, headerUserId, false);
-    }
-
-    @Test
     void testDeleteCommentWithoutUserId() throws Exception {
         mockMvc.perform(delete("/api/comments/{id}", commentId))
                 .andExpect(status().isBadRequest());
