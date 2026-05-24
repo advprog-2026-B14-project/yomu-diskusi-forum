@@ -106,31 +106,20 @@ public class CommentController {
         return ResponseEntity.ok(comments);
     }
 
-    /**
-     * Composite Pattern: Returns nested comment tree for a reading.
-     */
     @GetMapping("/reading/{readingId}/tree")
     public ResponseEntity<List<CommentComponent>> getCommentTree(@PathVariable("readingId") UUID readingId) {
         List<CommentComponent> tree = commentService.getCommentTreeByReadingId(readingId);
         return ResponseEntity.ok(tree);
     }
 
-    /**
-     * Async Parallel Endpoint: Mengambil comment tree dan reactions secara bersamaan.
-     * Menggunakan CompletableFuture untuk menjalankan 2 query secara parallel
-     * di thread pool terpisah, sehingga total waktu = max(query1, query2)
-     * bukan query1 + query2.
-     */
     @GetMapping("/reading/{readingId}/async-tree")
     public CompletableFuture<Map<String, Object>> getCommentTreeAsync(
             @PathVariable("readingId") UUID readingId) {
-        // Jalankan kedua operasi di thread terpisah secara parallel
         CompletableFuture<List<CommentComponent>> treeFuture =
                 asyncCommentService.getCommentTreeAsync(readingId);
         CompletableFuture<List<Comment>> flatFuture =
                 asyncCommentService.getCommentsByReadingIdAsync(readingId);
 
-        // Combine hasil dari kedua thread setelah keduanya selesai
         return treeFuture.thenCombine(flatFuture, (tree, flat) ->
                 Map.of(
                         "tree", tree,
@@ -162,9 +151,6 @@ public class CommentController {
         return userRole != null && userRole.equalsIgnoreCase("ADMIN");
     }
 
-    /**
-     * Resolves userId: prefers header, falls back to body/param.
-     */
     private String resolveUserId(String headerValue, String bodyValue) {
         if (headerValue != null && !headerValue.isBlank()) {
             return headerValue;

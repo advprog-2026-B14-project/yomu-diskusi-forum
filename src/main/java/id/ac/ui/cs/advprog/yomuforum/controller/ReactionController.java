@@ -108,9 +108,6 @@ public class ReactionController {
         return userRole != null && userRole.equalsIgnoreCase("ADMIN");
     }
 
-    /**
-     * Resolves userId: prefers header, falls back to body/param.
-     */
     private String resolveUserId(String headerValue, String bodyValue) {
         if (headerValue != null && !headerValue.isBlank()) {
             return headerValue;

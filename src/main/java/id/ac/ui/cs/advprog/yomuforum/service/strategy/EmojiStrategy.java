@@ -8,29 +8,14 @@ import org.springframework.stereotype.Component;
 import java.util.Date;
 import java.util.UUID;
 
-/**
- * Strategy Pattern – Concrete Strategy (Emoji).
- * Menangani logika emoji reactions:
- * - Non-exclusive: user bisa punya 1 vote + emoji bersamaan
- * - Mengganti emoji existing dari user yang sama pada komentar yang sama
- * - Menyimpan reaksi baru
- */
 @Component
 public class EmojiStrategy implements ReactionStrategy {
 
-    /**
-     * Emoji strategy menangani semua tipe EMOJI_*.
-     * Mengembalikan null karena strategy ini menangani multiple types.
-     * Gunakan isEmojiType() untuk mengecek.
-     */
     @Override
     public ReactionType getReactionType() {
-        return null; // Handles multiple emoji types
+        return null; 
     }
 
-    /**
-     * Checks if a ReactionType is an emoji type.
-     */
     public static boolean isEmojiType(ReactionType type) {
         return type != null
                 && type != ReactionType.UPVOTE
@@ -39,7 +24,6 @@ public class EmojiStrategy implements ReactionStrategy {
 
     @Override
     public Reaction apply(Reaction reaction, ReactionRepository repository) {
-        // Remove existing emoji from same user on same comment (replace behavior)
         repository.findByCommentIdAndUserId(reaction.getCommentId(), reaction.getUserId())
                 .ifPresent(existing -> {
                     if (isEmojiType(existing.getReactionType())) {

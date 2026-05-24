@@ -3,11 +3,6 @@ package id.ac.ui.cs.advprog.yomuforum.event;
 import java.util.Date;
 import java.util.UUID;
 
-/**
- * Observer Pattern – Event data class.
- * Membawa informasi tentang event yang terjadi dalam sistem
- * (misalnya komentar dibuat, reaksi ditambahkan).
- */
 public class CommentEvent {
 
     private final EventType eventType;

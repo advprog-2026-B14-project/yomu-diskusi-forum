@@ -19,4 +19,13 @@ public abstract class AbstractCommentComponent implements CommentComponent {
     @Override public String getContent()        { return comment.getContent(); }
     @Override public Date getCreatedAt()        { return comment.getCreatedAt(); }
     @Override public Date getUpdatedAt()        { return comment.getUpdatedAt(); }
+
+    private long upvotes = 0;
+    private long downvotes = 0;
+
+    @Override public long getUpvotes()          { return upvotes; }
+    @Override public void setUpvotes(long u)    { this.upvotes = u; }
+
+    @Override public long getDownvotes()        { return downvotes; }
+    @Override public void setDownvotes(long d)  { this.downvotes = d; }
 }

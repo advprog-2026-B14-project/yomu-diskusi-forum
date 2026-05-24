@@ -14,6 +14,12 @@ public interface CommentComponent {
     Date getCreatedAt();
     Date getUpdatedAt();
 
+    long getUpvotes();
+    void setUpvotes(long upvotes);
+
+    long getDownvotes();
+    void setDownvotes(long downvotes);
+
     List<CommentComponent> getChildren();
 
     void addChild(CommentComponent child);

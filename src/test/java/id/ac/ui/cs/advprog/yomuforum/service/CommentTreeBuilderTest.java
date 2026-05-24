@@ -6,20 +6,28 @@ import id.ac.ui.cs.advprog.yomuforum.dto.composite.CommentComposite;
 import id.ac.ui.cs.advprog.yomuforum.dto.composite.CommentLeaf;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
+import id.ac.ui.cs.advprog.yomuforum.repository.ReactionRepository;
 
 import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+@ExtendWith(MockitoExtension.class)
 class CommentTreeBuilderTest {
+
+    @Mock
+    private ReactionRepository reactionRepository;
 
     private CommentTreeBuilder treeBuilder;
     private UUID readingId;
 
     @BeforeEach
     void setUp() {
-        treeBuilder = new CommentTreeBuilder();
+        treeBuilder = new CommentTreeBuilder(reactionRepository);
         readingId = UUID.randomUUID();
     }
 
