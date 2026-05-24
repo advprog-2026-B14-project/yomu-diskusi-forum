@@ -200,4 +200,16 @@ class CommentTreeBuilderTest {
         assertTrue(result.getChildren().get(0).isLeaf());
         assertEquals("Child", result.getChildren().get(0).getContent());
     }
+
+    @Test
+    void testUpvotesAndDownvotes() {
+        Comment root = createComment(UUID.randomUUID(), null, "Root");
+        CommentLeaf leaf = new CommentLeaf(root);
+
+        leaf.setUpvotes(10L);
+        leaf.setDownvotes(5L);
+
+        assertEquals(10L, leaf.getUpvotes());
+        assertEquals(5L, leaf.getDownvotes());
+    }
 }
