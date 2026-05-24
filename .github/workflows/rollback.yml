@@ -27,4 +27,5 @@ jobs:
       - name: Rollback to specified image
         run: |
           koyeb service update ${{ vars.KOYEB_APP_NAME }}/${{ vars.KOYEB_SERVICE_NAME }} \
+            --docker-private-registry-secret ghcr-secret \
             --docker ${{ github.event.inputs.image }}

@@ -70,6 +70,7 @@ jobs:
       - name: Deploy to Koyeb
         run: |
           koyeb service update ${{ vars.KOYEB_APP_NAME }}/${{ vars.KOYEB_SERVICE_NAME }} \
+            --docker-private-registry-secret ghcr-secret \
             --docker ghcr.io/${{ env.REPO_OWNER }}/yomu-forum:${{ github.sha }}
 
       - name: Wait for deployment to be healthy
@@ -104,5 +105,6 @@ jobs:
             exit 1
           fi
           koyeb service update ${{ vars.KOYEB_APP_NAME }}/${{ vars.KOYEB_SERVICE_NAME }} \
+            --docker-private-registry-secret ghcr-secret \
             --docker ghcr.io/${{ env.REPO_OWNER }}/yomu-forum:$PREV_SHA
           echo "Rollback to $PREV_SHA initiated."
