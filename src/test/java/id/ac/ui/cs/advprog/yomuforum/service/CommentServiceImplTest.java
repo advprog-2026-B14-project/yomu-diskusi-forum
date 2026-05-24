@@ -361,7 +361,6 @@ class CommentServiceImplTest {
         verify(commentRepository, times(1)).findByUserId(userId);
     }
 
-    // ─── Composite Pattern: getCommentTreeByReadingId ─────────────
 
     @Test
     void testGetCommentTreeByReadingId() {

@@ -74,14 +74,11 @@ public class SecurityConfig {
     }
 
     private boolean isProductionProfile() {
-        try {
-            String[] active = env.getActiveProfiles();
-            for (String p : active) {
-                if (p != null && (p.equalsIgnoreCase("prod") || p.equalsIgnoreCase("production"))) {
-                    return true;
-                }
+        String[] active = env.getActiveProfiles();
+        for (String p : active) {
+            if (p != null && (p.equalsIgnoreCase("prod") || p.equalsIgnoreCase("production"))) {
+                return true;
             }
-        } catch (Exception e) {
         }
         return false;
     }

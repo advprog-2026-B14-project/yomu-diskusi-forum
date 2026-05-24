@@ -120,6 +120,8 @@ tasks.jacocoTestReport {
         }
     }))
     dependsOn(tasks.test)
+    dependsOn(tasks.compileJava)
+    dependsOn(tasks.processResources)
     
     reports {
         xml.required.set(true)

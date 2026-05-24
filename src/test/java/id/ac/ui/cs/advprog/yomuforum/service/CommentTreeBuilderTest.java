@@ -27,7 +27,7 @@ class CommentTreeBuilderTest {
 
     @BeforeEach
     void setUp() {
-        treeBuilder = new CommentTreeBuilder(reactionRepository);
+        treeBuilder = new CommentTreeBuilder();
         readingId = UUID.randomUUID();
     }
 
@@ -116,13 +116,13 @@ class CommentTreeBuilderTest {
         List<CommentComponent> result = treeBuilder.buildTree(List.of(root, child, grandchild));
 
         assertEquals(1, result.size());
-        assertFalse(result.get(0).isLeaf()); // Root has children
+        assertFalse(result.get(0).isLeaf()); 
 
         CommentComponent childNode = result.get(0).getChildren().get(0);
-        assertFalse(childNode.isLeaf()); // Child has grandchild
+        assertFalse(childNode.isLeaf()); 
 
         CommentComponent grandchildNode = childNode.getChildren().get(0);
-        assertTrue(grandchildNode.isLeaf()); // Grandchild is leaf
+        assertTrue(grandchildNode.isLeaf()); 
         assertEquals("Grandchild", grandchildNode.getContent());
     }
 
@@ -147,7 +147,6 @@ class CommentTreeBuilderTest {
 
     @Test
     void testBuildTreeWithOrphanComment() {
-        // A comment whose parent isn't in the list → treated as root
         UUID orphanId = UUID.randomUUID();
         UUID missingParentId = UUID.randomUUID();
 
