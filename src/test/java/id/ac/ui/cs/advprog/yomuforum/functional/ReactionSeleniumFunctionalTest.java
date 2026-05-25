@@ -55,7 +55,7 @@ class ReactionSeleniumFunctionalTest {
     }
 
     @Test
-    void testGetReactionsForCommentReturnsJson() throws Exception {
+    void testGetReactionsForCommentReturnsJson() {
         // Just testing a random UUID to ensure endpoint responds with JSON
         String randomCommentId = "123e4567-e89b-12d3-a456-426614174000";
         driver.get("http://localhost:" + port + "/api/reactions/comment/" + randomCommentId);

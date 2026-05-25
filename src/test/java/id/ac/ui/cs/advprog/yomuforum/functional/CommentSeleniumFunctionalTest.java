@@ -55,7 +55,7 @@ class CommentSeleniumFunctionalTest {
     }
 
     @Test
-    void testGetAllCommentsReturnsJson() throws Exception {
+    void testGetAllCommentsReturnsJson() {
         driver.get("http://localhost:" + port + "/api/comments");
         // Because it's a REST API, the browser will just render the raw JSON in the body
         String bodyText = driver.findElement(By.tagName("body")).getText();
