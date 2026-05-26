@@ -68,7 +68,7 @@ public class ReactionServiceImpl implements ReactionService {
 
     @Override
     public Reaction getUserReaction(UUID commentId, UUID userId) {
-        return reactionRepository.findByCommentIdAndUserId(commentId, userId)
-                .orElse(null);
+        List<Reaction> reactions = reactionRepository.findByCommentIdAndUserId(commentId, userId);
+        return reactions.isEmpty() ? null : reactions.get(0);
     }
 }

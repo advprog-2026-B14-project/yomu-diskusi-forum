@@ -25,7 +25,7 @@ public class EmojiStrategy implements ReactionStrategy {
     @Override
     public Reaction apply(Reaction reaction, ReactionRepository repository) {
         repository.findByCommentIdAndUserId(reaction.getCommentId(), reaction.getUserId())
-                .ifPresent(existing -> {
+                .forEach(existing -> {
                     if (isEmojiType(existing.getReactionType())) {
                         repository.delete(existing);
                     }

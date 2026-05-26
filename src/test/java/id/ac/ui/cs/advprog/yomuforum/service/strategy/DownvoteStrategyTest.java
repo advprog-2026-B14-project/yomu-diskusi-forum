@@ -5,8 +5,7 @@ import id.ac.ui.cs.advprog.yomuforum.model.ReactionType;
 import id.ac.ui.cs.advprog.yomuforum.repository.ReactionRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-
-import java.util.Optional;
+import java.util.List;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -44,7 +43,7 @@ class DownvoteStrategyTest {
         existing.setReactionType(ReactionType.DOWNVOTE);
 
         when(repository.findByCommentIdAndUserId(reaction.getCommentId(), reaction.getUserId()))
-                .thenReturn(Optional.of(existing));
+                .thenReturn(List.of(existing));
         when(repository.save(any(Reaction.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         Reaction result = strategy.apply(reaction, repository);
@@ -64,7 +63,7 @@ class DownvoteStrategyTest {
         existing.setReactionType(ReactionType.EMOJI_HEART);
 
         when(repository.findByCommentIdAndUserId(reaction.getCommentId(), reaction.getUserId()))
-                .thenReturn(Optional.of(existing));
+                .thenReturn(List.of(existing));
         when(repository.save(any(Reaction.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         strategy.apply(reaction, repository);
