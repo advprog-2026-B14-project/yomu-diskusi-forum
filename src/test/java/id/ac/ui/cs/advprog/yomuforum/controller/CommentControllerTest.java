@@ -7,6 +7,7 @@ import id.ac.ui.cs.advprog.yomuforum.exception.ForbiddenException;
 import id.ac.ui.cs.advprog.yomuforum.model.Comment;
 import id.ac.ui.cs.advprog.yomuforum.service.AsyncCommentService;
 import id.ac.ui.cs.advprog.yomuforum.service.CommentService;
+import id.ac.ui.cs.advprog.yomuforum.util.ControllerUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -14,7 +15,6 @@ import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.http.MediaType;
-import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.Arrays;
@@ -403,22 +403,21 @@ class CommentControllerTest {
     }
 
     @Test
-    void testPrivateHelpers() {
-        CommentController controller = new CommentController(commentService, asyncCommentService);
+    void testControllerUtils() {
 
-        assertNull(ReflectionTestUtils.invokeMethod(controller, "parseUuid", (String) null));
-        assertNull(ReflectionTestUtils.invokeMethod(controller, "parseUuid", "   "));
-        assertEquals(UUID.fromString(VALID_USER_UUID), ReflectionTestUtils.invokeMethod(controller, "parseUuid", VALID_USER_UUID));
-        assertThrows(Exception.class, () -> ReflectionTestUtils.invokeMethod(controller, "parseUuid", INVALID_USER));
+        assertNull(ControllerUtils.parseUuid((String) null));
+        assertNull(ControllerUtils.parseUuid("   "));
+        assertEquals(UUID.fromString(VALID_USER_UUID), ControllerUtils.parseUuid(VALID_USER_UUID));
+        assertThrows(Exception.class, () -> ControllerUtils.parseUuid(INVALID_USER));
 
-        assertThrows(Exception.class, () -> ReflectionTestUtils.invokeMethod(controller, "parseRequiredUuid", "", "userId"));
-        assertEquals(UUID.fromString(VALID_USER_UUID), ReflectionTestUtils.invokeMethod(controller, "parseRequiredUuid", VALID_USER_UUID, "userId"));
+        assertThrows(Exception.class, () -> ControllerUtils.parseRequiredUuid("", "userId"));
+        assertEquals(UUID.fromString(VALID_USER_UUID), ControllerUtils.parseRequiredUuid(VALID_USER_UUID, "userId"));
 
-        assertTrue((Boolean) ReflectionTestUtils.invokeMethod(controller, "isAdmin", "ADMIN"));
-        assertFalse((Boolean) ReflectionTestUtils.invokeMethod(controller, "isAdmin", "USER"));
+        assertTrue(ControllerUtils.isAdmin("ADMIN"));
+        assertFalse(ControllerUtils.isAdmin("USER"));
 
-        assertEquals(VALID_USER_UUID, ReflectionTestUtils.invokeMethod(controller, "resolveUserId", VALID_USER_UUID, "fallback"));
-        assertEquals("fallback", ReflectionTestUtils.invokeMethod(controller, "resolveUserId", "", "fallback"));
+        assertEquals(VALID_USER_UUID, ControllerUtils.resolveUserId(VALID_USER_UUID, "fallback"));
+        assertEquals("fallback", ControllerUtils.resolveUserId("", "fallback"));
     }
 
     @Test

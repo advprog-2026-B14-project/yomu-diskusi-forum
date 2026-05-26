@@ -17,14 +17,15 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
 
       - name: Install Koyeb CLI
-        uses: koyeb-community/koyeb-actions@v2
+        uses: koyeb-community/koyeb-actions@969e180512fa08ddac5231e2f78c8fb025fd5db7 # v2
         with:
           api_token: ${{ secrets.KOYEB_API_TOKEN }}
 
       - name: Rollback to specified image
         run: |
           koyeb service update ${{ vars.KOYEB_APP_NAME }}/${{ vars.KOYEB_SERVICE_NAME }} \
+            --docker-private-registry-secret ghcr-secret \
             --docker ${{ github.event.inputs.image }}

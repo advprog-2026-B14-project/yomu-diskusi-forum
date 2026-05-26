@@ -29,6 +29,9 @@ class AsyncCommentServiceTest {
     @Mock
     private ReactionService reactionService;
 
+    @Mock
+    private org.springframework.beans.factory.ObjectProvider<AsyncCommentService> selfProvider;
+
     @InjectMocks
     private AsyncCommentService asyncCommentService;
 
@@ -93,6 +96,7 @@ class AsyncCommentServiceTest {
 
     @Test
     void testGetCommentsWithReactionsAsync() throws ExecutionException, InterruptedException {
+        when(selfProvider.getObject()).thenReturn(asyncCommentService);
         when(commentService.getCommentsByReadingId(readingId)).thenReturn(List.of(comment));
         when(reactionService.getReactionsByCommentId(commentId)).thenReturn(List.of(reaction));
 

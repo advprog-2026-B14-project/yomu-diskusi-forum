@@ -4,6 +4,8 @@ WORKDIR /app
 
 COPY . .
 
+# Increase Gradle download timeout to prevent 10s timeout on slow networks
+ENV GRADLE_OPTS="-Dorg.gradle.internal.http.connectionTimeout=120000 -Dorg.gradle.internal.http.socketTimeout=120000"
 RUN chmod +x gradlew && ./gradlew clean bootJar -x test
 
 FROM eclipse-temurin:21-jre-alpine

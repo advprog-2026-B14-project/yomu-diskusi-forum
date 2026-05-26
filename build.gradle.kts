@@ -63,7 +63,8 @@ dependencies {
     implementation("io.micrometer:micrometer-registry-prometheus")
     implementation("org.springframework.boot:spring-boot-starter-data-jpa")
     implementation("org.springframework.boot:spring-boot-starter-thymeleaf")
-    implementation("io.sentry:sentry-spring-boot-starter-jakarta:7.3.0")
+    val sentryVersion = "7.3.0"
+    implementation("io.sentry:sentry-spring-boot-starter-jakarta:$sentryVersion")
     implementation("org.postgresql:postgresql")
     implementation("jakarta.validation:jakarta.validation-api:$jakartaValidationVersion")
     implementation("org.hibernate.validator:hibernate-validator:$hibernateValidatorVersion")
@@ -133,6 +134,7 @@ tasks.register<JacocoCoverageVerification>("verifyJaCoCoCoverage") {
     description = "Verify JaCoCo code coverage meets project thresholds"
     dependsOn(tasks.jacocoTestReport)
     dependsOn(tasks.test)
+    dependsOn("compileTestJava")
     val classes = fileTree("${buildDir}/classes/java/main") {
         exclude("**/generated/**")
     }

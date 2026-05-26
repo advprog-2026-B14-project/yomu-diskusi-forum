@@ -63,7 +63,8 @@ class NotificationCommentEventListenerTest {
                 EventType.COMMENT_CREATED, UUID.randomUUID(), UUID.randomUUID(), "test"));
         CommentEvent ev = new CommentEvent(
                 EventType.COMMENT_DELETED, UUID.randomUUID(), UUID.randomUUID(), "x");
-        assertThrows(UnsupportedOperationException.class, () -> listener.getNotifications().add(ev));
+        var notifications = listener.getNotifications();
+        assertThrows(UnsupportedOperationException.class, () -> notifications.add(ev));
     }
 
     @Test

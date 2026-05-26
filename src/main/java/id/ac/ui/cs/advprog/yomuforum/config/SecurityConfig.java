@@ -15,7 +15,6 @@ import org.slf4j.LoggerFactory;
 import java.util.List;
 import java.util.Arrays;
 import java.util.ArrayList;
-import java.util.stream.Collectors;
 
 @Configuration
 public class SecurityConfig {
@@ -117,7 +116,7 @@ public class SecurityConfig {
         List<String> parsed = Arrays.stream(allowedOrigins.split(","))
                 .map(String::trim)
                 .filter(s -> !s.isEmpty())
-                .collect(Collectors.toList());
+                .toList();
 
         for (String origin : parsed) {
             if (origin.contains("*")) {

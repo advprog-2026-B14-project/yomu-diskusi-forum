@@ -6,6 +6,7 @@ import id.ac.ui.cs.advprog.yomuforum.dto.ReactionRequest;
 import id.ac.ui.cs.advprog.yomuforum.model.Reaction;
 import id.ac.ui.cs.advprog.yomuforum.model.ReactionType;
 import id.ac.ui.cs.advprog.yomuforum.service.ReactionService;
+import id.ac.ui.cs.advprog.yomuforum.util.ControllerUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -186,22 +187,21 @@ class ReactionControllerTest {
     }
 
     @Test
-    void testPrivateHelpers() {
-        ReactionController controller = new ReactionController(reactionService);
+    void testControllerUtils() {
 
-        assertNull(ReflectionTestUtils.invokeMethod(controller, "parseUuid", (String) null));
-        assertNull(ReflectionTestUtils.invokeMethod(controller, "parseUuid", "   "));
-        assertEquals(UUID.fromString(TEST_USER), ReflectionTestUtils.invokeMethod(controller, "parseUuid", TEST_USER));
-        assertThrows(Exception.class, () -> ReflectionTestUtils.invokeMethod(controller, "parseUuid", INVALID_USER));
+        assertNull(ControllerUtils.parseUuid((String) null));
+        assertNull(ControllerUtils.parseUuid("   "));
+        assertEquals(UUID.fromString(TEST_USER), ControllerUtils.parseUuid(TEST_USER));
+        assertThrows(Exception.class, () -> ControllerUtils.parseUuid(INVALID_USER));
 
-        assertThrows(Exception.class, () -> ReflectionTestUtils.invokeMethod(controller, "parseRequiredUuid", "", "userId"));
-        assertEquals(UUID.fromString(TEST_USER), ReflectionTestUtils.invokeMethod(controller, "parseRequiredUuid", TEST_USER, "userId"));
+        assertThrows(Exception.class, () -> ControllerUtils.parseRequiredUuid("", "userId"));
+        assertEquals(UUID.fromString(TEST_USER), ControllerUtils.parseRequiredUuid(TEST_USER, "userId"));
 
-        assertTrue((Boolean) ReflectionTestUtils.invokeMethod(controller, "isAdmin", "ADMIN"));
-        assertFalse((Boolean) ReflectionTestUtils.invokeMethod(controller, "isAdmin", "USER"));
+        assertTrue(ControllerUtils.isAdmin("ADMIN"));
+        assertFalse(ControllerUtils.isAdmin("USER"));
 
-        assertEquals(TEST_USER, ReflectionTestUtils.invokeMethod(controller, "resolveUserId", TEST_USER, "fallback"));
-        assertEquals("fallback", ReflectionTestUtils.invokeMethod(controller, "resolveUserId", "", "fallback"));
+        assertEquals(TEST_USER, ControllerUtils.resolveUserId(TEST_USER, "fallback"));
+        assertEquals("fallback", ControllerUtils.resolveUserId("", "fallback"));
     }
 
     @Test

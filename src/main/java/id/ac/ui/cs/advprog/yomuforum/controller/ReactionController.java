@@ -1,7 +1,6 @@
 package id.ac.ui.cs.advprog.yomuforum.controller;
 
 import id.ac.ui.cs.advprog.yomuforum.dto.ReactionRequest;
-import id.ac.ui.cs.advprog.yomuforum.exception.InvalidInputException;
 import id.ac.ui.cs.advprog.yomuforum.model.Reaction;
 import id.ac.ui.cs.advprog.yomuforum.model.ReactionType;
 import id.ac.ui.cs.advprog.yomuforum.service.ReactionService;
@@ -20,6 +19,8 @@ import org.springframework.web.bind.annotation.RequestParam;
 
 import java.util.List;
 import java.util.UUID;
+
+import id.ac.ui.cs.advprog.yomuforum.util.ControllerUtils;
 
 @RestController
 @RequestMapping("/api/reactions")
@@ -40,9 +41,9 @@ public class ReactionController {
         }
 
         Reaction reaction = new Reaction();
-        reaction.setCommentId(parseRequiredUuid(request.getCommentId(), "commentId"));
-        String resolvedUserId = resolveUserId(userIdHeader, request.getUserId());
-        reaction.setUserId(parseRequiredUuid(resolvedUserId, "userId"));
+        reaction.setCommentId(ControllerUtils.parseRequiredUuid(request.getCommentId(), "commentId"));
+        String resolvedUserId = ControllerUtils.resolveUserId(userIdHeader, request.getUserId());
+        reaction.setUserId(ControllerUtils.parseRequiredUuid(resolvedUserId, "userId"));
         reaction.setReactionType(ReactionType.from(request.getReactionType()));
 
         Reaction addedReaction = reactionService.addReaction(reaction);
@@ -55,9 +56,9 @@ public class ReactionController {
             @RequestHeader(value = "X-User-Id", required = false) String userIdHeader,
             @RequestHeader(value = "X-User-Role", required = false) String userRole,
             @RequestParam(value = "userId", required = false) String userIdParam) {
-        String resolvedUserId = resolveUserId(userIdHeader, userIdParam);
+        String resolvedUserId = ControllerUtils.resolveUserId(userIdHeader, userIdParam);
         reactionService.removeReaction(
-                id, parseRequiredUuid(resolvedUserId, "userId"), isAdmin(userRole));
+                id, ControllerUtils.parseRequiredUuid(resolvedUserId, "userId"), ControllerUtils.isAdmin(userRole));
         return ResponseEntity.noContent().build();
     }
 
@@ -84,34 +85,5 @@ public class ReactionController {
             return ResponseEntity.ok(reaction);
         }
         return ResponseEntity.notFound().build();
-    }
-
-    private UUID parseUuid(String value) {
-        if (value == null || value.isBlank()) {
-            return null;
-        }
-        try {
-            return UUID.fromString(value);
-        } catch (IllegalArgumentException ex) {
-            throw new InvalidInputException("Invalid UUID format: " + value);
-        }
-    }
-
-    private UUID parseRequiredUuid(String value, String fieldName) {
-        if (value == null || value.isBlank()) {
-            throw new InvalidInputException(fieldName + " is required");
-        }
-        return parseUuid(value);
-    }
-
-    private boolean isAdmin(String userRole) {
-        return userRole != null && userRole.equalsIgnoreCase("ADMIN");
-    }
-
-    private String resolveUserId(String headerValue, String bodyValue) {
-        if (headerValue != null && !headerValue.isBlank()) {
-            return headerValue;
-        }
-        return bodyValue;
     }
 }
