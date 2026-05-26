@@ -9,7 +9,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.util.Optional;
+import java.util.List;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -63,7 +63,7 @@ class ReactionStrategyTest {
         Reaction reaction = createReaction(ReactionType.UPVOTE);
 
         when(reactionRepository.findByCommentIdAndUserId(commentId, userId))
-                .thenReturn(Optional.empty());
+                .thenReturn(List.of());
         when(reactionRepository.save(any(Reaction.class))).thenAnswer(i -> i.getArgument(0));
 
         Reaction result = upvoteStrategy.apply(reaction, reactionRepository);
@@ -81,7 +81,7 @@ class ReactionStrategyTest {
         existingDownvote.setId(UUID.randomUUID());
 
         when(reactionRepository.findByCommentIdAndUserId(commentId, userId))
-                .thenReturn(Optional.of(existingDownvote));
+                .thenReturn(List.of(existingDownvote));
         when(reactionRepository.save(any(Reaction.class))).thenAnswer(i -> i.getArgument(0));
 
         upvoteStrategy.apply(reaction, reactionRepository);
@@ -97,7 +97,7 @@ class ReactionStrategyTest {
         existingUpvote.setId(UUID.randomUUID());
 
         when(reactionRepository.findByCommentIdAndUserId(commentId, userId))
-                .thenReturn(Optional.of(existingUpvote));
+                .thenReturn(List.of(existingUpvote));
         when(reactionRepository.save(any(Reaction.class))).thenAnswer(i -> i.getArgument(0));
 
         upvoteStrategy.apply(reaction, reactionRepository);
@@ -112,7 +112,7 @@ class ReactionStrategyTest {
         existingEmoji.setId(UUID.randomUUID());
 
         when(reactionRepository.findByCommentIdAndUserId(commentId, userId))
-                .thenReturn(Optional.of(existingEmoji));
+                .thenReturn(List.of(existingEmoji));
         when(reactionRepository.save(any(Reaction.class))).thenAnswer(i -> i.getArgument(0));
 
         upvoteStrategy.apply(reaction, reactionRepository);
@@ -137,7 +137,7 @@ class ReactionStrategyTest {
         Reaction reaction = createReaction(ReactionType.DOWNVOTE);
 
         when(reactionRepository.findByCommentIdAndUserId(commentId, userId))
-                .thenReturn(Optional.empty());
+                .thenReturn(List.of());
         when(reactionRepository.save(any(Reaction.class))).thenAnswer(i -> i.getArgument(0));
 
         Reaction result = downvoteStrategy.apply(reaction, reactionRepository);
@@ -154,7 +154,7 @@ class ReactionStrategyTest {
         existingUpvote.setId(UUID.randomUUID());
 
         when(reactionRepository.findByCommentIdAndUserId(commentId, userId))
-                .thenReturn(Optional.of(existingUpvote));
+                .thenReturn(List.of(existingUpvote));
         when(reactionRepository.save(any(Reaction.class))).thenAnswer(i -> i.getArgument(0));
 
         downvoteStrategy.apply(reaction, reactionRepository);
@@ -169,7 +169,7 @@ class ReactionStrategyTest {
         existingEmoji.setId(UUID.randomUUID());
 
         when(reactionRepository.findByCommentIdAndUserId(commentId, userId))
-                .thenReturn(Optional.of(existingEmoji));
+                .thenReturn(List.of(existingEmoji));
         when(reactionRepository.save(any(Reaction.class))).thenAnswer(i -> i.getArgument(0));
 
         downvoteStrategy.apply(reaction, reactionRepository);
@@ -206,7 +206,7 @@ class ReactionStrategyTest {
         Reaction reaction = createReaction(ReactionType.EMOJI_HEART);
 
         when(reactionRepository.findByCommentIdAndUserId(commentId, userId))
-                .thenReturn(Optional.empty());
+                .thenReturn(List.of());
         when(reactionRepository.save(any(Reaction.class))).thenAnswer(i -> i.getArgument(0));
 
         Reaction result = emojiStrategy.apply(reaction, reactionRepository);
@@ -223,7 +223,7 @@ class ReactionStrategyTest {
         existingEmoji.setId(UUID.randomUUID());
 
         when(reactionRepository.findByCommentIdAndUserId(commentId, userId))
-                .thenReturn(Optional.of(existingEmoji));
+                .thenReturn(List.of(existingEmoji));
         when(reactionRepository.save(any(Reaction.class))).thenAnswer(i -> i.getArgument(0));
 
         emojiStrategy.apply(reaction, reactionRepository);
@@ -238,7 +238,7 @@ class ReactionStrategyTest {
         existingUpvote.setId(UUID.randomUUID());
 
         when(reactionRepository.findByCommentIdAndUserId(commentId, userId))
-                .thenReturn(Optional.of(existingUpvote));
+                .thenReturn(List.of(existingUpvote));
         when(reactionRepository.save(any(Reaction.class))).thenAnswer(i -> i.getArgument(0));
 
         emojiStrategy.apply(reaction, reactionRepository);

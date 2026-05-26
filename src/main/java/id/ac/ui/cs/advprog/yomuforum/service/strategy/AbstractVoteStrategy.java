@@ -12,7 +12,7 @@ public abstract class AbstractVoteStrategy implements ReactionStrategy {
     @Override
     public Reaction apply(Reaction reaction, ReactionRepository repository) {
         repository.findByCommentIdAndUserId(reaction.getCommentId(), reaction.getUserId())
-                .ifPresent(existing -> {
+                .forEach(existing -> {
                     if (existing.getReactionType() == ReactionType.UPVOTE
                             || existing.getReactionType() == ReactionType.DOWNVOTE) {
                         repository.delete(existing);

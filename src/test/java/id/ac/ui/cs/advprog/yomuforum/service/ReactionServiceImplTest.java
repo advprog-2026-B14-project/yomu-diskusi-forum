@@ -215,7 +215,7 @@ class ReactionServiceImplTest {
     @Test
     void testGetUserReactionFound() {
         when(reactionRepository.findByCommentIdAndUserId(commentId, userId))
-                .thenReturn(Optional.of(reaction));
+                .thenReturn(List.of(reaction));
 
         Reaction result = reactionService.getUserReaction(commentId, userId);
 
@@ -228,7 +228,7 @@ class ReactionServiceImplTest {
     @Test
     void testGetUserReactionNotFound() {
         when(reactionRepository.findByCommentIdAndUserId(commentId, userId))
-                .thenReturn(Optional.empty());
+                .thenReturn(List.of());
 
         Reaction result = reactionService.getUserReaction(commentId, userId);
 
