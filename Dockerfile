@@ -1,11 +1,34 @@
-# Menggunakan base image JDK 21 yang ringan (Alpine Linux)
-FROM eclipse-temurin:21-jdk-alpine@sha256:bcc7ec7e8fef937ba9f01ee5f810361d722c6b5dbe19ac188ab7b25c1a4dd2c9
+FROM eclipse-temurin:21-jdk-alpine AS build
 
-# Menentukan direktori kerja di dalam kontainer
 WORKDIR /app
 
-# Menyalin file JAR hasil build ke dalam kontainer
-COPY build/libs/*SNAPSHOT.jar app.jar
+COPY . .
 
-# Perintah untuk menjalankan aplikasi saat kontainer dimulai
-ENTRYPOINT ["java", "-jar", "app.jar"]
+# Increase Gradle download timeout to prevent 10s timeout on slow networks
+ENV GRADLE_OPTS="-Dorg.gradle.internal.http.connectionTimeout=120000 -Dorg.gradle.internal.http.socketTimeout=120000"
+RUN chmod +x gradlew && ./gradlew clean bootJar -x test
+
+FROM eclipse-temurin:21-jre-alpine
+
+WORKDIR /app
+
+COPY --from=build /app/build/libs/app.jar app.jar
+RUN apk add --no-cache curl
+
+EXPOSE ${PORT:-8080}
+
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=5 \
+  CMD curl -f http://localhost:${PORT:-8080}/actuator/health/liveness || exit 1
+
+ENTRYPOINT ["java", \
+  "-XX:+UseContainerSupport", \
+  "-Xmx96m", \
+  "-Xms64m", \
+  "-XX:MaxMetaspaceSize=96m", \
+  "-XX:+UseSerialGC", \
+  "-XX:CICompilerCount=1", \
+  "-XX:+TieredCompilation", \
+  "-XX:TieredStopAtLevel=1", \
+  "-Xss256k", \
+  "-jar", "app.jar"]
+

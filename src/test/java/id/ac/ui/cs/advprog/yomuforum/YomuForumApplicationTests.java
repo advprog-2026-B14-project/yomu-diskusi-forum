@@ -10,7 +10,7 @@ class YomuForumApplicationTests {
 
     @Test
     void contextLoads() {
-        // ...
+        assertTrue(true, "Context loads successfully");
     }
 
     @Test

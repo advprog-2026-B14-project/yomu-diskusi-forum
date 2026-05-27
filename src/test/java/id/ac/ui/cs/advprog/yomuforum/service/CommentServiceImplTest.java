@@ -1,9 +1,12 @@
 package id.ac.ui.cs.advprog.yomuforum.service;
 
 import id.ac.ui.cs.advprog.yomuforum.model.Comment;
+import id.ac.ui.cs.advprog.yomuforum.dto.composite.CommentComponent;
 import id.ac.ui.cs.advprog.yomuforum.exception.CommentNotFoundException;
 import id.ac.ui.cs.advprog.yomuforum.exception.ForbiddenException;
 import id.ac.ui.cs.advprog.yomuforum.exception.InvalidInputException;
+import id.ac.ui.cs.advprog.yomuforum.event.CommentEvent;
+import id.ac.ui.cs.advprog.yomuforum.event.CommentEventPublisher;
 import id.ac.ui.cs.advprog.yomuforum.repository.CommentRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -12,10 +15,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.util.Arrays;
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -26,6 +26,12 @@ class CommentServiceImplTest {
 
     @Mock
     private CommentRepository commentRepository;
+
+    @Mock
+    private CommentTreeBuilder commentTreeBuilder;
+
+    @Mock
+    private CommentEventPublisher commentEventPublisher;
 
     @InjectMocks
     private CommentServiceImpl commentService;
@@ -55,6 +61,7 @@ class CommentServiceImplTest {
         assertNotNull(result.getCreatedAt());
         assertNotNull(result.getUpdatedAt());
         verify(commentRepository, times(1)).save(any(Comment.class));
+        verify(commentEventPublisher).notifySubscribers(any(CommentEvent.class));
     }
 
     @Test
@@ -126,6 +133,7 @@ class CommentServiceImplTest {
         assertNotNull(result.getUpdatedAt());
         verify(commentRepository, times(1)).findById(commentId);
         verify(commentRepository, times(1)).save(any(Comment.class));
+        verify(commentEventPublisher).notifySubscribers(any(CommentEvent.class));
     }
 
     @Test
@@ -188,11 +196,12 @@ class CommentServiceImplTest {
     void testUpdateCommentForbidden() {
         Comment updatedComment = new Comment();
         updatedComment.setContent("Updated content");
+        UUID otherUserId = UUID.randomUUID();
 
         when(commentRepository.findById(commentId)).thenReturn(Optional.of(comment));
 
         ForbiddenException exception = assertThrows(ForbiddenException.class,
-                () -> commentService.updateComment(commentId, updatedComment, UUID.randomUUID(), false));
+            () -> commentService.updateComment(commentId, updatedComment, otherUserId, false));
 
         assertEquals("You can only edit your own comments", exception.getMessage());
         verify(commentRepository, never()).save(any(Comment.class));
@@ -221,6 +230,7 @@ class CommentServiceImplTest {
 
         verify(commentRepository, times(1)).findById(commentId);
         verify(commentRepository, times(1)).deleteById(commentId);
+        verify(commentEventPublisher).notifySubscribers(any(CommentEvent.class));
     }
 
     @Test
@@ -349,5 +359,35 @@ class CommentServiceImplTest {
 
         assertEquals(1, results.size());
         verify(commentRepository, times(1)).findByUserId(userId);
+    }
+
+
+    @Test
+    void testGetCommentTreeByReadingId() {
+        UUID readingId = comment.getReadingId();
+        List<Comment> flatComments = List.of(comment);
+        List<CommentComponent> mockTree = List.of(mock(CommentComponent.class));
+
+        when(commentRepository.findByReadingId(readingId)).thenReturn(flatComments);
+        when(commentTreeBuilder.buildTree(flatComments)).thenReturn(mockTree);
+
+        List<CommentComponent> result = commentService.getCommentTreeByReadingId(readingId);
+
+        assertEquals(1, result.size());
+        verify(commentRepository).findByReadingId(readingId);
+        verify(commentTreeBuilder).buildTree(flatComments);
+    }
+
+    @Test
+    void testGetCommentTreeByReadingIdEmpty() {
+        UUID readingId = UUID.randomUUID();
+        List<Comment> empty = List.of();
+
+        when(commentRepository.findByReadingId(readingId)).thenReturn(empty);
+        when(commentTreeBuilder.buildTree(empty)).thenReturn(List.of());
+
+        List<CommentComponent> result = commentService.getCommentTreeByReadingId(readingId);
+
+        assertTrue(result.isEmpty());
     }
 }

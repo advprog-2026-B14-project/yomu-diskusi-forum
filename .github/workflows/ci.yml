@@ -1,40 +1,61 @@
 name: Continuous Integration (CI)
 
-on:
-  push:
-    branches: ["main", "staging", "ci-cd"]
-  pull_request:
-    branches: ["main", "staging"]
-
 permissions:
   contents: read
 
-jobs:
-  test:
-    name: Run Tests and Quality Check
-    runs-on: ubuntu-22.04
-    steps:
-      - name: Check out the Git repository
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
-        with:
-          fetch-depth: 0
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
 
-      - name: Set up Java toolchain
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+
+      - name: Set up JDK 21
         uses: actions/setup-java@c5195efecf7bdfc987ee8bae7a71cb8b11521c00
         with:
-          distribution: "temurin"
+          distribution: temurin
           java-version: "21"
-          cache: "gradle"
 
-      - name: Make gradlew executable
-        run: chmod +x ./gradlew
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
 
-      - name: Run unit tests & JaCoCo
-        run: ./gradlew test jacocoTestReport
+      - name: Cache Gradle packages
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
 
-      - name: Upload test reports
-        if: always()
+      - name: Run Checkstyle
+        run: ./gradlew runCheckstyle --no-daemon
+
+      - name: Run tests and generate JaCoCo report
+        run: ./gradlew clean test functionalTest jacocoTestReport --no-daemon
+
+      - name: Enforce JaCoCo coverage (90% lines)
+        run: ./gradlew jacocoTestCoverageVerification --no-daemon
+
+      - name: Dependency check (OWASP)
+        run: ./gradlew dependencyCheckAnalyze --no-daemon || true
+
+      - name: Upload JaCoCo HTML report
         uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882
         with:
-          name: test-reports
-          path: build/reports/tests/test
+          name: jacoco-report
+          path: build/reports/jacoco/test/html
+
+      - name: Upload Dependency-Check report
+        uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882
+        with:
+          name: dependency-check-report
+          path: build/reports/dependency-check

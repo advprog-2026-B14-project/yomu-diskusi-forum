@@ -7,10 +7,20 @@ import id.ac.ui.cs.advprog.yomuforum.service.ReactionService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
 
 import java.util.List;
 import java.util.UUID;
+
+import id.ac.ui.cs.advprog.yomuforum.util.ControllerUtils;
 
 @RestController
 @RequestMapping("/api/reactions")
@@ -18,11 +28,22 @@ import java.util.UUID;
 public class ReactionController {
     private final ReactionService reactionService;
 
+    @org.springframework.beans.factory.annotation.Value("${feature.flags.reaction-enabled:true}")
+    private boolean isReactionEnabled;
+
     @PostMapping
-    public ResponseEntity<Reaction> addReaction(@RequestBody ReactionRequest request) {
+    public ResponseEntity<Object> addReaction(
+            @RequestHeader(value = "X-User-Id", required = false) String userIdHeader,
+            @RequestBody ReactionRequest request) {
+        if (!isReactionEnabled) {
+            return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+                    .body("Fitur Reaction sedang dinonaktifkan (Feature Flag)");
+        }
+
         Reaction reaction = new Reaction();
-        reaction.setCommentId(UUID.fromString(request.getCommentId()));
-        reaction.setUserId(UUID.fromString(request.getUserId()));
+        reaction.setCommentId(ControllerUtils.parseRequiredUuid(request.getCommentId(), "commentId"));
+        String resolvedUserId = ControllerUtils.resolveUserId(userIdHeader, request.getUserId());
+        reaction.setUserId(ControllerUtils.parseRequiredUuid(resolvedUserId, "userId"));
         reaction.setReactionType(ReactionType.from(request.getReactionType()));
 
         Reaction addedReaction = reactionService.addReaction(reaction);
@@ -30,8 +51,14 @@ public class ReactionController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> removeReaction(@PathVariable("id") UUID id) {
-        reactionService.removeReaction(id);
+    public ResponseEntity<Void> removeReaction(
+            @PathVariable("id") UUID id,
+            @RequestHeader(value = "X-User-Id", required = false) String userIdHeader,
+            @RequestHeader(value = "X-User-Role", required = false) String userRole,
+            @RequestParam(value = "userId", required = false) String userIdParam) {
+        String resolvedUserId = ControllerUtils.resolveUserId(userIdHeader, userIdParam);
+        reactionService.removeReaction(
+                id, ControllerUtils.parseRequiredUuid(resolvedUserId, "userId"), ControllerUtils.isAdmin(userRole));
         return ResponseEntity.noContent().build();
     }
 

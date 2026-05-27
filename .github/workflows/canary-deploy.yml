@@ -1,0 +1,52 @@
+name: Canary Deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      image:
+        description: "Image to deploy as canary (eg ghcr.io/org/yomu-forum:sha)"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  canary:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+
+      - name: Set up kubectl
+        uses: azure/setup-kubectl@901a10e89ea615cf61f57ac05cecdf23e7de06d8 # v3
+        with:
+          version: "1.26.0"
+
+      - name: Configure kubeconfig
+        env:
+          KUBECONFIG_DATA: ${{ secrets.KUBE_CONFIG }}
+        run: |
+          echo "$KUBECONFIG_DATA" | base64 --decode > kubeconfig
+          export KUBECONFIG=$(pwd)/kubeconfig
+
+      - name: Deploy canary (1 replica)
+        run: |
+          kubectl -n production create deployment yomu-canary --image=${{ github.event.inputs.image }} --dry-run=client -o yaml | kubectl apply -f -
+          kubectl -n production scale deployment yomu-canary --replicas=1
+
+      - name: Wait for canary to be ready
+        run: |
+          if ! kubectl -n production rollout status deployment/yomu-canary --timeout=2m; then
+            kubectl -n production delete deployment yomu-canary || true
+            echo "Canary failed" && exit 1
+          fi
+
+      - name: Promote canary (update main deployment)
+        run: |
+          kubectl -n production set image deployment/yomu-deployment yomu-container=${{ github.event.inputs.image }}
+          if ! kubectl -n production rollout status deployment/yomu-deployment --timeout=3m; then
+            echo "Main rollout failed, undoing..."
+            kubectl -n production rollout undo deployment/yomu-deployment
+            exit 1
+          fi

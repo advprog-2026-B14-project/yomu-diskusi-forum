@@ -38,3 +38,14 @@ out/
 
 # Environment Variables
 .env
+
+# Additional ignored folders added by cleanup script
+/.idea/
+/.gradle/
+/build/
+/.vscode/
+/bin/
+Yomu_Diskusi_Forum_API.postman_collection.json
+scripts/pin-actions.sh
+
+/k6/k6.exe

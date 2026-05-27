@@ -1,64 +1,72 @@
-name: Continuous Deployment (Zero Token Version)
+name: Continuous Deployment (Koyeb)
 
 on:
   push:
     branches:
       - main
+  workflow_dispatch:
 
 permissions:
   contents: read
 
+concurrency:
+  group: koyeb-production
+  cancel-in-progress: true
+
 jobs:
   deploy:
+    name: Build, Publish Image and Deploy to Koyeb
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    env:
+      KOYEB_API_TOKEN: ${{ secrets.KOYEB_API_TOKEN }}
+      KOYEB_APP_NAME: ${{ vars.KOYEB_APP_NAME }}
+      KOYEB_SERVICE_NAME: ${{ vars.KOYEB_SERVICE_NAME }}
 
     steps:
-      - name: Checkout Code
-        uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744
+      - name: Check out repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+        with:
+          fetch-depth: 0
+
+      - name: Set lowercase repository owner
+        run: echo "REPO_OWNER=$(echo ${{ github.repository_owner }} | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
+
+      - name: Install Koyeb CLI
+        id: install_koyeb
+        uses: koyeb-community/koyeb-actions@969e180512fa08ddac5231e2f78c8fb025fd5db7 # v2
+        with:
+          api_token: ${{ secrets.KOYEB_API_TOKEN }}
 
       - name: Set up JDK 21
-        uses: actions/setup-java@17f84c3641ba7b8f6deff6309fc4c864478f5d62
+        uses: actions/setup-java@c5195efecf7bdfc987ee8bae7a71cb8b11521c00 # v4
         with:
-          java-version: "21"
-          distribution: "temurin"
-          cache: gradle
+          distribution: temurin
+          java-version: 21
 
-      - name: Grant execute permission for Gradle Wrapper
-        run: chmod +x ./gradlew
+      - name: Run project verification (tests, checkstyle, coverage)
+        run: |
+          chmod +x gradlew
+          ./gradlew clean check
 
-      - name: Build JAR with Gradle
-        run: ./gradlew clean bootJar -x test
-
-      - name: Copy JAR and Dockerfile to EC2
-        uses: appleboy/scp-action@ff85246acaad7bdce478db94a363cd2bf7c90345
+      - name: Log in to GHCR
+        uses: docker/login-action@465a07811f14bebb1938fbed4728c6a1ff8901fc # v2
         with:
-          host: 18.207.58.155
-          username: ubuntu
-          key: ${{ secrets.EC2_SSH_KEY }}
-          source: "build/libs/*.jar,Dockerfile"
-          target: "~/yomu-app"
-          strip_components: 0
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build and Run Docker on EC2
-        uses: appleboy/ssh-action@2ead5e36573f08b82fbfce1504f1a4b05a647c6f
+      - name: Build and push Docker image
+        uses: docker/build-push-action@0a97817b6ade9f46837855d676c4cca3a2471fc9 # v4
         with:
-          host: 18.207.58.155
-          username: ubuntu
-          key: ${{ secrets.EC2_SSH_KEY }}
-          script: |
-            cd ~/yomu-app
-            # Stop container lama
-            sudo docker stop yomu-diskusi-forum || true
-            sudo docker rm yomu-diskusi-forum || true
+          context: .
+          file: Dockerfile
+          push: true
+          tags: |
+            ghcr.io/${{ env.REPO_OWNER }}/yomu-forum:${{ github.sha }}
+            ghcr.io/${{ env.REPO_OWNER }}/yomu-forum:latest
 
-            # Build image baru secara lokal di EC2 (Nggak butuh ECR/Token)
-            sudo docker build -t yomu-diskusi-forum:latest .
 
-            # Jalankan dengan Env Var Database
-            sudo docker run -d \
-              --name yomu-diskusi-forum \
-              -p 8085:8085 \
-              -e SPRING_DATASOURCE_URL="${{ secrets.DB_URL }}" \
-              -e SPRING_DATASOURCE_USERNAME="${{ secrets.DB_USERNAME }}" \
-              -e SPRING_DATASOURCE_PASSWORD="${{ secrets.DB_PASSWORD }}" \
-              yomu-diskusi-forum:latest

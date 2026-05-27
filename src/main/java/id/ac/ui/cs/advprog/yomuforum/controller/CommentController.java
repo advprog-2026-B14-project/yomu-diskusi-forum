@@ -1,32 +1,50 @@
 package id.ac.ui.cs.advprog.yomuforum.controller;
 
 import id.ac.ui.cs.advprog.yomuforum.dto.CommentRequest;
-import id.ac.ui.cs.advprog.yomuforum.exception.InvalidInputException;
 import id.ac.ui.cs.advprog.yomuforum.model.Comment;
+import id.ac.ui.cs.advprog.yomuforum.dto.composite.CommentComponent;
 import id.ac.ui.cs.advprog.yomuforum.service.CommentService;
-import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
 
-import java.security.Principal;
+import id.ac.ui.cs.advprog.yomuforum.service.AsyncCommentService;
+
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+
+import id.ac.ui.cs.advprog.yomuforum.util.ControllerUtils;
 
 @RestController
 @RequestMapping("/api/comments")
 @RequiredArgsConstructor
 public class CommentController {
     private final CommentService commentService;
+    private final AsyncCommentService asyncCommentService;
+    private static final String USER_ID = "userId";
 
     @PostMapping
-    public ResponseEntity<Comment> createComment(@RequestBody CommentRequest request) {
+    public ResponseEntity<Comment> createComment(
+            @RequestHeader(value = "X-User-Id", required = false) String userIdHeader,
+            @RequestBody CommentRequest request) {
         Comment comment = new Comment();
         comment.setContent(request.getContent());
-        comment.setUserId(parseRequiredUuid(request.getUserId(), "userId"));
-        comment.setReadingId(parseRequiredUuid(request.getReadingId(), "readingId"));
-        comment.setParentCommentId(parseUuid(request.getParentCommentId()));
+        String resolvedUserId = ControllerUtils.resolveUserId(userIdHeader, request.getUserId());
+        comment.setUserId(ControllerUtils.parseRequiredUuid(resolvedUserId, USER_ID));
+        comment.setReadingId(ControllerUtils.parseRequiredUuid(request.getReadingId(), "readingId"));
+        comment.setParentCommentId(ControllerUtils.parseUuid(request.getParentCommentId()));
 
         Comment createdComment = commentService.createComment(comment);
         return new ResponseEntity<>(createdComment, HttpStatus.CREATED);
@@ -35,22 +53,27 @@ public class CommentController {
     @PutMapping("/{id}")
     public ResponseEntity<Comment> updateComment(
             @PathVariable("id") UUID id,
-            Principal principal,
-            HttpServletRequest request,
+            @RequestHeader(value = "X-User-Id", required = false) String userIdHeader,
+            @RequestHeader(value = "X-User-Role", required = false) String userRole,
             @RequestBody CommentRequest requestBody) {
         Comment comment = new Comment();
         comment.setContent(requestBody.getContent());
+        String resolvedUserId = ControllerUtils.resolveUserId(userIdHeader, requestBody.getUserId());
 
-        Comment updatedComment = commentService.updateComment(id, comment, extractUserId(principal), isAdmin(request));
+        Comment updatedComment = commentService.updateComment(
+            id, comment, ControllerUtils.parseRequiredUuid(resolvedUserId, USER_ID), ControllerUtils.isAdmin(userRole));
         return ResponseEntity.ok(updatedComment);
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteComment(
             @PathVariable("id") UUID id,
-            Principal principal,
-            HttpServletRequest request) {
-        commentService.deleteComment(id, extractUserId(principal), isAdmin(request));
+            @RequestHeader(value = "X-User-Id", required = false) String userIdHeader,
+            @RequestHeader(value = "X-User-Role", required = false) String userRole,
+            @RequestParam(value = USER_ID, required = false) String userIdParam) {
+        String resolvedUserId = ControllerUtils.resolveUserId(userIdHeader, userIdParam);
+        commentService.deleteComment(
+                id, ControllerUtils.parseRequiredUuid(resolvedUserId, USER_ID), ControllerUtils.isAdmin(userRole));
         return ResponseEntity.noContent().build();
     }
 
@@ -84,38 +107,26 @@ public class CommentController {
         return ResponseEntity.ok(comments);
     }
 
-    private UUID parseUuid(String value) {
-        if (value == null || value.isBlank()) {
-            return null;
-        }
-
-        try {
-            return UUID.fromString(value);
-        } catch (IllegalArgumentException ex) {
-            throw new InvalidInputException("Invalid UUID format: " + value);
-        }
+    @GetMapping("/reading/{readingId}/tree")
+    public ResponseEntity<List<CommentComponent>> getCommentTree(@PathVariable("readingId") UUID readingId) {
+        List<CommentComponent> tree = commentService.getCommentTreeByReadingId(readingId);
+        return ResponseEntity.ok(tree);
     }
 
-    private UUID parseRequiredUuid(String value, String fieldName) {
-        if (value == null || value.isBlank()) {
-            throw new InvalidInputException(fieldName + " is required");
-        }
-        return parseUuid(value);
-    }
+    @GetMapping("/reading/{readingId}/async-tree")
+    public CompletableFuture<Map<String, Object>> getCommentTreeAsync(
+            @PathVariable("readingId") UUID readingId) {
+        CompletableFuture<List<CommentComponent>> treeFuture =
+                asyncCommentService.getCommentTreeAsync(readingId);
+        CompletableFuture<List<Comment>> flatFuture =
+                asyncCommentService.getCommentsByReadingIdAsync(readingId);
 
-    private UUID extractUserId(Principal principal) {
-        if (principal == null || principal.getName() == null || principal.getName().isBlank()) {
-            throw new InvalidInputException("Authenticated user is required");
-        }
-
-        try {
-            return UUID.fromString(principal.getName());
-        } catch (IllegalArgumentException ex) {
-            throw new InvalidInputException("Authenticated user id is not a valid UUID");
-        }
-    }
-
-    private boolean isAdmin(HttpServletRequest request) {
-        return request != null && request.isUserInRole("ADMIN");
+        return treeFuture.thenCombine(flatFuture, (tree, flat) ->
+                Map.of(
+                        "tree", tree,
+                        "flatComments", flat,
+                        "totalComments", flat.size()
+                )
+        );
     }
 }

@@ -1,0 +1,20 @@
+groups:
+  - name: yomu_forum_alerts
+    rules:
+      - alert: InstanceDown
+        expr: up{job="yomu_forum"} == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Yomu Forum instance down ({{ $labels.instance }})"
+          description: "Prometheus target for Yomu Forum is not up."
+
+      - alert: HighErrorRate
+        expr: rate(http_server_requests_seconds_count{job="yomu_forum",status=~"5.."}[5m]) > 0.05
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High 5xx error rate"
+          description: "More than 5% of requests are failing with 5xx status codes."

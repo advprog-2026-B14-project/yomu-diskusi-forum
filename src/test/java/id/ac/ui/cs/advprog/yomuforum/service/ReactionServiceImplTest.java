@@ -2,7 +2,14 @@ package id.ac.ui.cs.advprog.yomuforum.service;
 
 import id.ac.ui.cs.advprog.yomuforum.model.Reaction;
 import id.ac.ui.cs.advprog.yomuforum.model.ReactionType;
+import id.ac.ui.cs.advprog.yomuforum.event.CommentEvent;
+import id.ac.ui.cs.advprog.yomuforum.event.CommentEventPublisher;
+import id.ac.ui.cs.advprog.yomuforum.service.strategy.ReactionStrategy;
+import id.ac.ui.cs.advprog.yomuforum.service.strategy.ReactionStrategyContext;
 import id.ac.ui.cs.advprog.yomuforum.repository.ReactionRepository;
+import id.ac.ui.cs.advprog.yomuforum.exception.ForbiddenException;
+import id.ac.ui.cs.advprog.yomuforum.exception.InvalidInputException;
+import id.ac.ui.cs.advprog.yomuforum.exception.ReactionNotFoundException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -11,6 +18,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.Arrays;
+import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -24,6 +32,12 @@ class ReactionServiceImplTest {
 
     @Mock
     private ReactionRepository reactionRepository;
+
+    @Mock
+    private ReactionStrategyContext reactionStrategyContext;
+
+    @Mock
+    private CommentEventPublisher commentEventPublisher;
 
     @InjectMocks
     private ReactionServiceImpl reactionService;
@@ -47,47 +61,107 @@ class ReactionServiceImplTest {
     }
 
     @Test
-    void testAddReactionNoExisting() {
-        when(reactionRepository.findByCommentIdAndUserId(commentId, userId))
-                .thenReturn(Optional.empty());
-        when(reactionRepository.save(any(Reaction.class))).thenAnswer(invocation -> invocation.getArgument(0));
+    void testAddReactionDelegatesToStrategy() {
+        // The saved reaction returned by the strategy
+        Reaction savedReaction = new Reaction();
+        savedReaction.setId(UUID.randomUUID());
+        savedReaction.setCommentId(commentId);
+        savedReaction.setUserId(userId);
+        savedReaction.setReactionType(ReactionType.UPVOTE);
+        savedReaction.setCreatedAt(new Date());
+
+        ReactionStrategy mockStrategy = mock(ReactionStrategy.class);
+        when(reactionStrategyContext.getStrategy(ReactionType.UPVOTE)).thenReturn(mockStrategy);
+        when(mockStrategy.apply(reaction, reactionRepository)).thenReturn(savedReaction);
 
         Reaction result = reactionService.addReaction(reaction);
 
         assertNotNull(result);
-        assertNotNull(result.getId());
-        assertNotNull(result.getCreatedAt());
-        verify(reactionRepository, times(1)).findByCommentIdAndUserId(commentId, userId);
-        verify(reactionRepository, never()).delete(any(Reaction.class));
-        verify(reactionRepository, times(1)).save(any(Reaction.class));
+        assertEquals(savedReaction.getId(), result.getId());
+        verify(reactionStrategyContext).getStrategy(ReactionType.UPVOTE);
+        verify(mockStrategy).apply(reaction, reactionRepository);
+        verify(commentEventPublisher).notifySubscribers(any(CommentEvent.class));
     }
 
     @Test
-    void testAddReactionWithExistingReaction() {
-        Reaction existingReaction = new Reaction();
-        existingReaction.setId(UUID.randomUUID());
-        existingReaction.setCommentId(commentId);
-        existingReaction.setUserId(userId);
-        existingReaction.setReactionType(ReactionType.DOWNVOTE);
+    void testAddReactionWithEmojiType() {
+        reaction.setReactionType(ReactionType.EMOJI_HEART);
 
-        when(reactionRepository.findByCommentIdAndUserId(commentId, userId))
-                .thenReturn(Optional.of(existingReaction));
-        when(reactionRepository.save(any(Reaction.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        Reaction savedReaction = new Reaction();
+        savedReaction.setId(UUID.randomUUID());
+        savedReaction.setCommentId(commentId);
+        savedReaction.setUserId(userId);
+        savedReaction.setReactionType(ReactionType.EMOJI_HEART);
+        savedReaction.setCreatedAt(new Date());
+
+        ReactionStrategy mockStrategy = mock(ReactionStrategy.class);
+        when(reactionStrategyContext.getStrategy(ReactionType.EMOJI_HEART)).thenReturn(mockStrategy);
+        when(mockStrategy.apply(reaction, reactionRepository)).thenReturn(savedReaction);
 
         Reaction result = reactionService.addReaction(reaction);
 
         assertNotNull(result);
-        verify(reactionRepository, times(1)).delete(existingReaction);
-        verify(reactionRepository, times(1)).save(any(Reaction.class));
+        verify(reactionStrategyContext).getStrategy(ReactionType.EMOJI_HEART);
     }
 
     @Test
     void testRemoveReaction() {
         doNothing().when(reactionRepository).deleteById(reactionId);
 
-        reactionService.removeReaction(reactionId);
+        reaction.setUserId(userId);
+        when(reactionRepository.findById(reactionId)).thenReturn(Optional.of(reaction));
+
+        reactionService.removeReaction(reactionId, userId, false);
 
         verify(reactionRepository, times(1)).deleteById(reactionId);
+        verify(commentEventPublisher).notifySubscribers(any(CommentEvent.class));
+    }
+
+    @Test
+    void testRemoveReactionAsAdmin() {
+        doNothing().when(reactionRepository).deleteById(reactionId);
+
+        reaction.setUserId(UUID.randomUUID());
+        when(reactionRepository.findById(reactionId)).thenReturn(Optional.of(reaction));
+
+        reactionService.removeReaction(reactionId, userId, true);
+
+        verify(reactionRepository, times(1)).deleteById(reactionId);
+    }
+
+    @Test
+    void testRemoveReactionForbidden() {
+        reaction.setUserId(UUID.randomUUID());
+        when(reactionRepository.findById(reactionId)).thenReturn(Optional.of(reaction));
+
+        ForbiddenException exception = assertThrows(ForbiddenException.class,
+                () -> reactionService.removeReaction(reactionId, userId, false));
+
+        assertEquals("You can only delete your own reactions unless you are admin", exception.getMessage());
+        verify(reactionRepository, never()).deleteById(reactionId);
+    }
+
+    @Test
+    void testRemoveReactionNotFound() {
+        when(reactionRepository.findById(reactionId)).thenReturn(Optional.empty());
+
+        ReactionNotFoundException exception = assertThrows(ReactionNotFoundException.class,
+                () -> reactionService.removeReaction(reactionId, userId, false));
+
+        assertEquals("Reaction not found", exception.getMessage());
+        verify(reactionRepository, never()).deleteById(reactionId);
+    }
+
+    @Test
+    void testRemoveReactionMissingActorUserId() {
+        reaction.setUserId(userId);
+        when(reactionRepository.findById(reactionId)).thenReturn(Optional.of(reaction));
+
+        InvalidInputException exception = assertThrows(InvalidInputException.class,
+                () -> reactionService.removeReaction(reactionId, null, false));
+
+        assertEquals("userId is required", exception.getMessage());
+        verify(reactionRepository, never()).deleteById(reactionId);
     }
 
     @Test
@@ -141,7 +215,7 @@ class ReactionServiceImplTest {
     @Test
     void testGetUserReactionFound() {
         when(reactionRepository.findByCommentIdAndUserId(commentId, userId))
-                .thenReturn(Optional.of(reaction));
+                .thenReturn(List.of(reaction));
 
         Reaction result = reactionService.getUserReaction(commentId, userId);
 
@@ -154,7 +228,7 @@ class ReactionServiceImplTest {
     @Test
     void testGetUserReactionNotFound() {
         when(reactionRepository.findByCommentIdAndUserId(commentId, userId))
-                .thenReturn(Optional.empty());
+                .thenReturn(List.of());
 
         Reaction result = reactionService.getUserReaction(commentId, userId);
 

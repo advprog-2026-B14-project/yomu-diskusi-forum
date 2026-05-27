@@ -1,0 +1,13 @@
+global:
+  scrape_interval: 15s # Sedot data setiap 15 detik
+
+scrape_configs:
+  - job_name: 'yomu-spring-boot-koyeb'
+    metrics_path: '/actuator/prometheus'
+    scheme: 'https' # Wajib pakai HTTPS karena Koyeb sudah SSL
+    static_configs:
+      # URL Koyeb kamu (tanpa https:// dan tanpa garis miring di akhir)
+      - targets: ['verbal-atalanta-moondiverc-c0bd26af.koyeb.app']
+        labels:
+          environment: production
+          application: yomu-diskusi-forum

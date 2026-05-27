@@ -1,6 +1,7 @@
 package id.ac.ui.cs.advprog.yomuforum.service;
 
 import id.ac.ui.cs.advprog.yomuforum.model.Comment;
+import id.ac.ui.cs.advprog.yomuforum.dto.composite.CommentComponent;
 
 import java.util.List;
 import java.util.UUID;
@@ -14,4 +15,6 @@ public interface CommentService {
     List<Comment> getCommentsByReadingId(UUID readingId);
     List<Comment> getRepliesByParentId(UUID parentCommentId);
     List<Comment> getCommentsByUserId(UUID userId);
+
+    List<CommentComponent> getCommentTreeByReadingId(UUID readingId);
 }
